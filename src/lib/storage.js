@@ -1,14 +1,22 @@
-const STORAGE_KEY = 'packy-trip';
+// STORAGE LAYER
+// This file abstracts all data persistence.
+// Currently uses localStorage.
+// Designed to be replaced with IndexedDB later.
+//
+// IMPORTANT:
+// Do not use localStorage outside this file.
+
+const KEY = 'packy-trip';
 
 export function getTrip() {
-	const stored = localStorage.getItem(STORAGE_KEY);
+	const stored = localStorage.getItem(KEY);
 	return stored ? JSON.parse(stored) : null;
 }
 
 export function saveTrip(trip) {
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(trip));
+	localStorage.setItem(KEY, JSON.stringify(trip));
 }
 
 export function clearTrip() {
-	localStorage.removeItem(STORAGE_KEY);
+	localStorage.removeItem(KEY);
 }
