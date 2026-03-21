@@ -7,7 +7,8 @@
 	let tripName = '';
 	let departureDate = '';
 	let returnDate = '';
-	let newItemName = '';
+	let newItemNames = {};  // Object keyed by category.id
+	let newCategoryName = '';
 
 	$: calculatedDuration = departureDate && returnDate
 		? calculateDays(departureDate, returnDate)
@@ -15,9 +16,21 @@
 
 	onMount(() => {
 		trip = getTrip();
-		// Ensure items array exists for trips created before PLAN_02
-		if (trip && !trip.items) {
-			trip.items = [];
+
+		// Migration: Convert PLAN_02 trips (with items) to PLAN_03 (with categories)
+		if (trip && trip.items && !trip.categories) {
+			trip.categories = [{
+				id: Date.now().toString(),
+				name: 'General',
+				items: trip.items
+			}];
+			delete trip.items;
+			saveTrip(trip);
+		}
+
+		// Ensure categories array exists for trips created before PLAN_03
+		if (trip && !trip.categories) {
+			trip.categories = [];
 		}
 	});
 
@@ -39,7 +52,7 @@
 			departureDate,
 			returnDate,
 			calculatedDays: calculateDays(departureDate, returnDate),
-			items: []
+			categories: []
 		};
 
 		saveTrip(newTrip);
@@ -55,33 +68,75 @@
 		trip = null;
 	}
 
-	function handleAddItem() {
-		if (!newItemName) return;
+	function addCategory() {
+		if (!newCategoryName) return;
 
-		const item = {
+		const category = {
 			id: Date.now().toString(),
-			name: newItemName,
-			packed: false
+			name: newCategoryName,
+			items: []
 		};
 
-		trip.items = [...trip.items, item];
+		trip.categories = [...trip.categories, category];
 		trip = { ...trip };
 
 		saveTrip(trip);
-		newItemName = '';
+		newCategoryName = '';
 	}
 
-	function toggleItem(id) {
-		trip.items = trip.items.map((item) =>
-			item.id === id ? { ...item, packed: !item.packed } : item
-		);
+	function addItem(categoryId) {
+		const itemName = newItemNames[categoryId];
+		if (!itemName) return;
+
+		trip.categories = trip.categories.map((cat) => {
+			if (cat.id === categoryId) {
+				return {
+					...cat,
+					items: [
+						...cat.items,
+						{
+							id: Date.now().toString(),
+							name: itemName,
+							packed: false
+						}
+					]
+				};
+			}
+			return cat;
+		});
+
+		trip = { ...trip };
+		saveTrip(trip);
+		newItemNames[categoryId] = '';  // Clear only this category's input
+	}
+
+	function toggleItem(categoryId, itemId) {
+		trip.categories = trip.categories.map((cat) => {
+			if (cat.id === categoryId) {
+				return {
+					...cat,
+					items: cat.items.map((item) =>
+						item.id === itemId ? { ...item, packed: !item.packed } : item
+					)
+				};
+			}
+			return cat;
+		});
 
 		trip = { ...trip };
 		saveTrip(trip);
 	}
 
-	function deleteItem(id) {
-		trip.items = trip.items.filter((item) => item.id !== id);
+	function deleteItem(categoryId, itemId) {
+		trip.categories = trip.categories.map((cat) => {
+			if (cat.id === categoryId) {
+				return {
+					...cat,
+					items: cat.items.filter((item) => item.id !== itemId)
+				};
+			}
+			return cat;
+		});
 
 		trip = { ...trip };
 		saveTrip(trip);
@@ -133,35 +188,57 @@
 		</p>
 		<button on:click={handleClearTrip}>Clear Trip</button>
 
-		<div class="items-section">
-			<h2>Packing Items</h2>
+		<div class="categories-section">
+			<h2>Packing List</h2>
 
-			<div class="add-item">
+			<div class="add-category">
 				<input
 					type="text"
-					bind:value={newItemName}
-					placeholder="Enter item name"
-					on:keydown={(e) => e.key === 'Enter' && handleAddItem()}
+					bind:value={newCategoryName}
+					placeholder="Category name (e.g., Clothing)"
+					on:keydown={(e) => e.key === 'Enter' && addCategory()}
 				/>
-				<button on:click={handleAddItem}>Add Item</button>
+				<button on:click={addCategory}>Add Category</button>
 			</div>
 
-			{#if trip.items && trip.items.length > 0}
-				<ul class="items-list">
-					{#each trip.items as item (item.id)}
-						<li class:packed={item.packed}>
+			{#if trip.categories && trip.categories.length > 0}
+				{#each trip.categories as category (category.id)}
+					<div class="category">
+						<h3>{category.name}</h3>
+
+						<div class="add-item">
 							<input
-								type="checkbox"
-								checked={item.packed}
-								on:change={() => toggleItem(item.id)}
+								type="text"
+								bind:value={newItemNames[category.id]}
+								placeholder="Add item to {category.name}"
+								on:keydown={(e) => e.key === 'Enter' && addItem(category.id)}
 							/>
-							<span class="item-name">{item.name}</span>
-							<button class="delete-btn" on:click={() => deleteItem(item.id)}>Delete</button>
-						</li>
-					{/each}
-				</ul>
+							<button on:click={() => addItem(category.id)}>Add Item</button>
+						</div>
+
+						{#if category.items && category.items.length > 0}
+							<ul class="items-list">
+								{#each category.items as item (item.id)}
+									<li class:packed={item.packed}>
+										<input
+											type="checkbox"
+											checked={item.packed}
+											on:change={() => toggleItem(category.id, item.id)}
+										/>
+										<span class="item-name">{item.name}</span>
+										<button class="delete-btn" on:click={() => deleteItem(category.id, item.id)}>
+											Delete
+										</button>
+									</li>
+								{/each}
+							</ul>
+						{:else}
+							<p class="empty-items">No items in this category yet.</p>
+						{/if}
+					</div>
+				{/each}
 			{:else}
-				<p class="empty-items">No items yet. Add your first item above.</p>
+				<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>
 			{/if}
 		</div>
 	</div>
@@ -242,12 +319,35 @@
 		color: #666;
 	}
 
-	.items-section {
+	.categories-section {
 		margin-top: 2rem;
 		text-align: left;
 	}
 
-	.items-section h2 {
+	.categories-section h2 {
+		margin-bottom: 1rem;
+	}
+
+	.add-category {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.add-category input {
+		flex: 1;
+		padding: 0.5rem;
+	}
+
+	.category {
+		margin-bottom: 2rem;
+		padding: 1rem;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+	}
+
+	.category h3 {
+		margin-top: 0;
 		margin-bottom: 1rem;
 	}
 
@@ -293,5 +393,11 @@
 	.empty-items {
 		color: #999;
 		font-style: italic;
+	}
+
+	.empty-categories {
+		color: #999;
+		font-style: italic;
+		margin-top: 1rem;
 	}
 </style>
