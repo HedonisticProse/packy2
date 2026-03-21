@@ -70,6 +70,10 @@
 	}
 </script>
 
+<div class="logo-container">
+	<img src="/packy2/packy2_underconstruction.png" alt="Packy2 Logo" />
+</div>
+
 {#if !$tripStore && !showForm}
 	<div class="empty-state">
 		<p>No trip yet</p>
@@ -133,6 +137,17 @@
 {/if}
 
 <style>
+	.logo-container {
+		display: flex;
+		justify-content: center;
+		padding: 2rem 0 1rem 0;
+	}
+
+	.logo-container img {
+		max-width: 300px;
+		height: auto;
+	}
+
 	.empty-state {
 		display: flex;
 		flex-direction: column;
