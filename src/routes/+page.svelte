@@ -7,6 +7,7 @@
 	let tripName = '';
 	let departureDate = '';
 	let returnDate = '';
+	let newItemName = '';
 
 	$: calculatedDuration = departureDate && returnDate
 		? calculateDays(departureDate, returnDate)
@@ -14,6 +15,10 @@
 
 	onMount(() => {
 		trip = getTrip();
+		// Ensure items array exists for trips created before PLAN_02
+		if (trip && !trip.items) {
+			trip.items = [];
+		}
 	});
 
 	function calculateDays(departure, returnVal) {
@@ -33,7 +38,8 @@
 			name: tripName,
 			departureDate,
 			returnDate,
-			calculatedDays: calculateDays(departureDate, returnDate)
+			calculatedDays: calculateDays(departureDate, returnDate),
+			items: []
 		};
 
 		saveTrip(newTrip);
@@ -47,6 +53,38 @@
 	function handleClearTrip() {
 		clearTrip();
 		trip = null;
+	}
+
+	function handleAddItem() {
+		if (!newItemName) return;
+
+		const item = {
+			id: Date.now().toString(),
+			name: newItemName,
+			packed: false
+		};
+
+		trip.items = [...trip.items, item];
+		trip = { ...trip };
+
+		saveTrip(trip);
+		newItemName = '';
+	}
+
+	function toggleItem(id) {
+		trip.items = trip.items.map((item) =>
+			item.id === id ? { ...item, packed: !item.packed } : item
+		);
+
+		trip = { ...trip };
+		saveTrip(trip);
+	}
+
+	function deleteItem(id) {
+		trip.items = trip.items.filter((item) => item.id !== id);
+
+		trip = { ...trip };
+		saveTrip(trip);
 	}
 </script>
 
@@ -94,6 +132,38 @@
 			{trip.calculatedDays} {trip.calculatedDays === 1 ? 'day' : 'days'}
 		</p>
 		<button on:click={handleClearTrip}>Clear Trip</button>
+
+		<div class="items-section">
+			<h2>Packing Items</h2>
+
+			<div class="add-item">
+				<input
+					type="text"
+					bind:value={newItemName}
+					placeholder="Enter item name"
+					on:keydown={(e) => e.key === 'Enter' && handleAddItem()}
+				/>
+				<button on:click={handleAddItem}>Add Item</button>
+			</div>
+
+			{#if trip.items && trip.items.length > 0}
+				<ul class="items-list">
+					{#each trip.items as item (item.id)}
+						<li class:packed={item.packed}>
+							<input
+								type="checkbox"
+								checked={item.packed}
+								on:change={() => toggleItem(item.id)}
+							/>
+							<span class="item-name">{item.name}</span>
+							<button class="delete-btn" on:click={() => deleteItem(item.id)}>Delete</button>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="empty-items">No items yet. Add your first item above.</p>
+			{/if}
+		</div>
 	</div>
 {/if}
 
@@ -170,5 +240,58 @@
 
 	.duration {
 		color: #666;
+	}
+
+	.items-section {
+		margin-top: 2rem;
+		text-align: left;
+	}
+
+	.items-section h2 {
+		margin-bottom: 1rem;
+	}
+
+	.add-item {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.add-item input {
+		flex: 1;
+		padding: 0.5rem;
+	}
+
+	.items-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.items-list li {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border-bottom: 1px solid #eee;
+	}
+
+	.items-list li.packed .item-name {
+		text-decoration: line-through;
+		color: #999;
+	}
+
+	.item-name {
+		flex: 1;
+	}
+
+	.delete-btn {
+		padding: 0.25rem 0.5rem;
+		font-size: 0.875rem;
+	}
+
+	.empty-items {
+		color: #999;
+		font-style: italic;
 	}
 </style>
