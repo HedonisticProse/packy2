@@ -152,8 +152,6 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		min-height: 50vh;
 		gap: 1rem;
 	}
 
@@ -187,8 +185,8 @@
 
 	.trip-display {
 		max-width: 600px;
-		margin: 2rem auto;
-		padding: 2rem;
+		margin: 0 auto;
+		padding: 0 2rem 2rem 2rem;
 		text-align: center;
 	}
 
