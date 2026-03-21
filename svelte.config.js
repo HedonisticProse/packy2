@@ -1,16 +1,19 @@
 import adapter from '@sveltejs/adapter-static';
 
-const config = {
+const dev = process.argv.includes('dev');
+
+export default {
   kit: {
     adapter: adapter({
       pages: 'docs',
       assets: 'docs',
-      fallback: 'index.html'
+      fallback: '404.html'
     }),
     paths: {
-      base: '/packy2'
+      base: dev ? '' : '/packy2'
+    },
+    prerender: {
+      handleHttpError: 'ignore'
     }
   }
 };
-
-export default config;

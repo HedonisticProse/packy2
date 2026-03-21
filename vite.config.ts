@@ -1,8 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 
-const config = {
+export default {
   plugins: [sveltekit()],
   base: '/packy2/'
 };
-
-export default config;
