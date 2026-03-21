@@ -1,10 +1,10 @@
 import adapter from '@sveltejs/adapter-static';
 
-export default {
+const config = {
   kit: {
     adapter: adapter({
-      pages: 'build',
-      assets: 'build',
+      pages: 'docs',
+      assets: 'docs',
       fallback: 'index.html'
     }),
     paths: {
@@ -12,3 +12,5 @@ export default {
     }
   }
 };
+
+export default config;
