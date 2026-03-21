@@ -24,4 +24,7 @@ vite.config.ts.timestamp-*
 
 # User Ignores
 /.packy
+/.claude
+/.user
 CLAUDE.md
+justfile
