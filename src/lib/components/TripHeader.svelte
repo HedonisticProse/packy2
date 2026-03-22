@@ -4,12 +4,12 @@
 </script>
 
 <div class="trip-header">
-	<h1>{trip.name}</h1>
+	<h1>{trip.str_name}</h1>
 	<p class="dates">
-		{trip.departureDate} to {trip.returnDate}
+		{trip.date_departure} to {trip.date_return}
 	</p>
 	<p class="duration">
-		{trip.calculatedDays} {trip.calculatedDays === 1 ? 'day' : 'days'}
+		{trip.int_duration} {trip.int_duration === 1 ? 'day' : 'days'}
 	</p>
 	<button on:click={onClear}>Clear Trip</button>
 </div>

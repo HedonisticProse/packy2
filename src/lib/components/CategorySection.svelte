@@ -3,30 +3,34 @@
 	import { addItem } from '$lib/store.js';
 
 	export let category;
+	export let items; // All items from parent
+
+	// Filter items for this category
+	$: categoryItems = items.filter((item) => item.int_category_id === category.int_id);
 
 	let newItemName = '';
 
-	function handleAddItem() {
+	async function handleAddItem() {
 		if (!newItemName) return;
-		addItem(category.id, newItemName);
+		await addItem(category.int_id, newItemName);
 		newItemName = '';
 	}
 </script>
 
 <div class="category">
-	<h3>{category.name}</h3>
+	<h3>{category.str_name}</h3>
 
 	<div class="add-item">
 		<input
 			type="text"
 			bind:value={newItemName}
-			placeholder="Add item to {category.name}"
+			placeholder="Add item to {category.str_name}"
 			on:keydown={(e) => e.key === 'Enter' && handleAddItem()}
 		/>
 		<button on:click={handleAddItem}>Add Item</button>
 	</div>
 
-	<ItemList items={category.items} categoryId={category.id} />
+	<ItemList items={categoryItems} categoryId={category.int_id} />
 </div>
 
 <style>

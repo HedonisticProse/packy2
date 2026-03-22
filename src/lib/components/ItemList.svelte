@@ -7,15 +7,15 @@
 
 {#if items && items.length > 0}
 	<ul class="items-list">
-		{#each items as item (item.id)}
-			<li class:packed={item.packed}>
+		{#each items as item (item.int_id)}
+			<li class:packed={item.bool_packed}>
 				<input
 					type="checkbox"
-					checked={item.packed}
-					on:change={() => toggleItem(categoryId, item.id)}
+					checked={item.bool_packed}
+					on:change={() => toggleItem(categoryId, item.int_id)}
 				/>
-				<span class="item-name">{item.name}</span>
-				<button class="delete-btn" on:click={() => deleteItem(categoryId, item.id)}>
+				<span class="item-name">{item.str_name}</span>
+				<button class="delete-btn" on:click={() => deleteItem(categoryId, item.int_id)}>
 					Delete
 				</button>
 			</li>

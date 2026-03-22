@@ -1,11 +1,12 @@
 <script>
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { tripStore, createTrip, clearTripState, addCategory } from '$lib/store.js';
-	import { saveTrip } from '$lib/storage.js';
+	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory } from '$lib/store.js';
+	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
 	import TripHeader from '$lib/components/TripHeader.svelte';
 	import CategorySection from '$lib/components/CategorySection.svelte';
 
+	let isLoading = true;
 	let showForm = false;
 	let tripName = '';
 	let departureDate = '';
@@ -16,29 +17,14 @@
 		? calculateDays(departureDate, returnDate)
 		: 0;
 
-	onMount(() => {
-		// Migration: Convert PLAN_02 trips (with items) to PLAN_03 (with categories)
-		const currentTrip = $tripStore;
-		if (currentTrip && currentTrip.items && !currentTrip.categories) {
-			const migrated = {
-				...currentTrip,
-				categories: [{
-					id: Date.now().toString(),
-					name: 'General',
-					items: currentTrip.items
-				}]
-			};
-			delete migrated.items;
-			tripStore.set(migrated);
-			saveTrip(migrated);
-		}
+	onMount(async () => {
+		// Step 1: Migrate from localStorage (transforms nested → flat)
+		await migrateFromLocalStorage();
 
-		// Ensure categories array exists for trips created before PLAN_03
-		if (currentTrip && !currentTrip.categories) {
-			const updated = { ...currentTrip, categories: [] };
-			tripStore.set(updated);
-			saveTrip(updated);
-		}
+		// Step 2: Initialize store from IndexedDB
+		await initializeTripStore();
+
+		isLoading = false;
 	});
 
 	function calculateDays(departure, returnVal) {
@@ -49,24 +35,24 @@
 		return diffDays + 1; // Inclusive (same day = 1 day)
 	}
 
-	function handleCreateTrip() {
+	async function handleCreateTrip() {
 		if (!tripName || !departureDate || !returnDate) {
 			return;
 		}
 
-		createTrip(tripName, departureDate, returnDate, calculateDays(departureDate, returnDate));
+		await createTrip(tripName, departureDate, returnDate, calculateDays(departureDate, returnDate));
 		showForm = false;
 		tripName = '';
 		departureDate = '';
 		returnDate = '';
 	}
 
-	function handleClearTrip() {
-		clearTripState();
+	async function handleClearTrip() {
+		await clearTripState();
 	}
 
-	function handleAddCategory() {
-		addCategory(newCategoryName);
+	async function handleAddCategory() {
+		await addCategory(newCategoryName);
 		newCategoryName = '';
 	}
 </script>
@@ -75,14 +61,16 @@
 	<img src={base + '/logo.png'} alt="Packy2 Logo" />
 </div>
 
-{#if !$tripStore && !showForm}
+{#if isLoading}
+	<div class="loading-state">
+		<p>Loading your trip...</p>
+	</div>
+{:else if !$tripStore && !showForm}
 	<div class="empty-state">
 		<p>No trip yet</p>
 		<button on:click={() => (showForm = true)}>Start New Trip</button>
 	</div>
-{/if}
-
-{#if !$tripStore && showForm}
+{:else if !$tripStore && showForm}
 	<div class="trip-form">
 		<h2>Create New Trip</h2>
 		<form on:submit|preventDefault={handleCreateTrip}>
@@ -107,9 +95,7 @@
 			</div>
 		</form>
 	</div>
-{/if}
-
-{#if $tripStore}
+{:else if $tripStore}
 	<div class="trip-display">
 		<TripHeader trip={$tripStore} onClear={handleClearTrip} />
 
@@ -126,9 +112,9 @@
 				<button on:click={handleAddCategory}>Add Category</button>
 			</div>
 
-			{#if $tripStore.categories && $tripStore.categories.length > 0}
-				{#each $tripStore.categories as category (category.id)}
-					<CategorySection {category} />
+			{#if $tripStore.arr_categories && $tripStore.arr_categories.length > 0}
+				{#each $tripStore.arr_categories as category (category.int_id)}
+					<CategorySection {category} items={$tripStore.arr_items} />
 				{/each}
 			{:else}
 				<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>
@@ -147,6 +133,15 @@
 	.logo-container img {
 		max-width: 300px;
 		height: auto;
+	}
+
+	.loading-state {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 4rem 0;
+		color: #666;
+		font-style: italic;
 	}
 
 	.empty-state {
