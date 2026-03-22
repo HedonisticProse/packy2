@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { tripStore, createTrip, clearTripState, addCategory } from '$lib/store.js';
 	import { saveTrip } from '$lib/storage.js';
@@ -71,7 +72,7 @@
 </script>
 
 <div class="logo-container">
-	<img src="/packy2/packy2_underconstruction.png" alt="Packy2 Logo" />
+	<img src={base + '/logo.png'} alt="Packy2 Logo" />
 </div>
 
 {#if !$tripStore && !showForm}
