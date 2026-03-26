@@ -144,7 +144,7 @@
 
 			{#if $tripStore.arr_categories && $tripStore.arr_categories.length > 0}
 				{#each $tripStore.arr_categories as category (category.int_id)}
-					<CategorySection {category} items={$tripStore.arr_items} />
+					<CategorySection {category} items={$tripStore.arr_items} bags={$tripStore.arr_bags} />
 				{/each}
 			{:else}
 				<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>

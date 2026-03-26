@@ -4,6 +4,7 @@
 
 	export let items;
 	export let categoryId;
+	export let bags;
 
 	let editingItem = null;
 </script>
@@ -29,7 +30,7 @@
 {/if}
 
 {#if editingItem}
-	<ItemEditModal item={editingItem} onClose={() => (editingItem = null)} />
+	<ItemEditModal item={editingItem} onClose={() => (editingItem = null)} {bags} />
 {/if}
 
 <style>

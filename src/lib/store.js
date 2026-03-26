@@ -89,7 +89,8 @@ export async function addCategory(categoryName) {
 		const newCategory = {
 			int_id: Date.now(),
 			str_name: categoryName,
-			int_order: trip.arr_categories.length
+			int_order: trip.arr_categories.length,
+			int_bag_id: null
 		};
 
 		return {
@@ -169,6 +170,16 @@ export async function deleteCategory(categoryId) {
 	}));
 }
 
+// Assign (or unassign) a category to a bag
+export async function assignCategoryToBag(categoryId, bagId) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_categories: trip.arr_categories.map((cat) =>
+			cat.int_id === categoryId ? { ...cat, int_bag_id: bagId } : cat
+		)
+	}));
+}
+
 // Add bag
 export async function addBag(bagName) {
 	if (!bagName) return;
@@ -192,11 +203,14 @@ export async function renameBag(bagId, newName) {
 	}));
 }
 
-// Delete bag (nulls out int_bag_id on any items referencing it)
+// Delete bag (nulls out int_bag_id on any categories or items referencing it)
 export async function deleteBag(bagId) {
 	await updateAndSave((trip) => ({
 		...trip,
 		arr_bags: trip.arr_bags.filter((bag) => bag.int_id !== bagId),
+		arr_categories: trip.arr_categories.map((cat) =>
+			cat.int_bag_id === bagId ? { ...cat, int_bag_id: null } : cat
+		),
 		arr_items: trip.arr_items.map((item) =>
 			item.int_bag_id === bagId ? { ...item, int_bag_id: null } : item
 		)

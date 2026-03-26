@@ -3,17 +3,20 @@
 
 	export let item;
 	export let onClose;
+	export let bags;
 
 	let draftName = item.str_name;
 	let draftQuantity = item.str_quantity ?? '';
 	let draftCritical = item.bool_critical;
+	let draftBagId = item.int_bag_id ?? '';
 
 	async function handleSave() {
 		if (!draftName.trim()) return;
 		await updateItem(item.int_id, {
 			str_name: draftName.trim(),
 			str_quantity: draftQuantity,
-			bool_critical: draftCritical
+			bool_critical: draftCritical,
+			int_bag_id: draftBagId === '' ? null : Number(draftBagId)
 		});
 		onClose();
 	}
@@ -62,6 +65,18 @@
 			<input type="checkbox" bind:checked={draftCritical} />
 			Critical
 		</label>
+
+		{#if bags && bags.length > 0}
+			<label>
+				Bag
+				<select bind:value={draftBagId}>
+					<option value="">Default (category bag)</option>
+					{#each bags as bag (bag.int_id)}
+						<option value={bag.int_id}>{bag.str_name}</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
 
 		<div class="modal-actions">
 			<button on:click={handleSave} disabled={!draftName.trim()}>Save</button>

@@ -1,9 +1,10 @@
 <script>
 	import ItemList from './ItemList.svelte';
-	import { addItem, renameCategory, deleteCategory } from '$lib/store.js';
+	import { addItem, renameCategory, deleteCategory, assignCategoryToBag } from '$lib/store.js';
 
 	export let category;
 	export let items; // All items from parent
+	export let bags; // All bags from parent
 
 	// Filter items for this category
 	$: categoryItems = items.filter((item) => item.int_category_id === category.int_id);
@@ -52,6 +53,17 @@
 			<button on:click={cancelRename}>Cancel</button>
 		{:else}
 			<h3>{category.str_name}</h3>
+			{#if bags && bags.length > 0}
+				<select
+					value={category.int_bag_id ?? ''}
+					on:change={(e) => assignCategoryToBag(category.int_id, e.target.value ? Number(e.target.value) : null)}
+				>
+					<option value="">No bag</option>
+					{#each bags as bag (bag.int_id)}
+						<option value={bag.int_id}>{bag.str_name}</option>
+					{/each}
+				</select>
+			{/if}
 			<button on:click={startRename}>Rename</button>
 			<button class="delete-btn" on:click={handleDelete}>Delete</button>
 		{/if}
@@ -67,7 +79,7 @@
 		<button on:click={handleAddItem}>Add Item</button>
 	</div>
 
-	<ItemList items={categoryItems} categoryId={category.int_id} />
+	<ItemList items={categoryItems} categoryId={category.int_id} {bags} />
 </div>
 
 <style>
