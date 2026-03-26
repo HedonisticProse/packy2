@@ -40,6 +40,7 @@ function transformToFlatModel(oldTrip) {
 						int_id: itemId,
 						str_name: item.name,
 						bool_packed: item.packed || false,
+						bool_validated: item.validated || false,
 						int_category_id: categoryId, // Foreign key to category
 						int_bag_id: null, // Future: bag assignment
 						int_order: itemOrder++,

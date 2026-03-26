@@ -90,13 +90,14 @@ export async function addItem(categoryId, itemName) {
 
 	await updateAndSave((trip) => {
 		const newItem = {
-			int_id: Date.now(),
-			str_name: itemName,
-			bool_packed: false,
+			int_id: Date.now(), // Item's ID, currently just date now.
+			str_name: itemName, // Item's name
+			bool_packed: false, // Used by all items
+			bool_validated: false, // Valides correct quantity
 			int_category_id: categoryId, // Foreign key to category
-			int_bag_id: null,
-			int_order: trip.arr_items.length,
-			bool_critical: false
+			int_bag_id: null, // The Bag's ID where the item currently lives
+			int_order: trip.arr_items.length, // Where does it sit in the order?
+			bool_critical: false // Is this item critical?
 		};
 
 		return {
