@@ -1,10 +1,11 @@
 <script>
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory } from '$lib/store.js';
+	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory, addBag } from '$lib/store.js';
 	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
 	import TripHeader from '$lib/components/TripHeader.svelte';
 	import CategorySection from '$lib/components/CategorySection.svelte';
+	import BagSection from '$lib/components/BagSection.svelte';
 
 	let isLoading = true;
 	let showForm = false;
@@ -12,6 +13,7 @@
 	let departureDate = '';
 	let returnDate = '';
 	let newCategoryName = '';
+	let newBagName = '';
 
 	$: calculatedDuration = departureDate && returnDate
 		? calculateDays(departureDate, returnDate)
@@ -54,6 +56,12 @@
 	async function handleAddCategory() {
 		await addCategory(newCategoryName);
 		newCategoryName = '';
+	}
+
+	async function handleAddBag() {
+		if (!newBagName.trim()) return;
+		await addBag(newBagName.trim());
+		newBagName = '';
 	}
 </script>
 
@@ -98,6 +106,28 @@
 {:else if $tripStore}
 	<div class="trip-display">
 		<TripHeader trip={$tripStore} onClear={handleClearTrip} />
+
+		<div class="bags-section">
+			<h2>Bags</h2>
+
+			{#if $tripStore.arr_bags && $tripStore.arr_bags.length > 0}
+				{#each $tripStore.arr_bags as bag (bag.int_id)}
+					<BagSection {bag} />
+				{/each}
+			{:else}
+				<p class="empty-bags">No bags yet.</p>
+			{/if}
+
+			<div class="add-bag">
+				<input
+					type="text"
+					bind:value={newBagName}
+					placeholder="Bag name (e.g., Carry-on)"
+					on:keydown={(e) => e.key === 'Enter' && handleAddBag()}
+				/>
+				<button on:click={handleAddBag}>Add Bag</button>
+			</div>
+		</div>
 
 		<div class="categories-section">
 			<h2>Packing List</h2>
@@ -200,6 +230,32 @@
 
 	.duration {
 		color: #666;
+	}
+
+	.bags-section {
+		margin-top: 2rem;
+		text-align: left;
+	}
+
+	.bags-section h2 {
+		margin-bottom: 1rem;
+	}
+
+	.add-bag {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.add-bag input {
+		flex: 1;
+		padding: 0.5rem;
+	}
+
+	.empty-bags {
+		color: #999;
+		font-style: italic;
+		margin-top: 1rem;
 	}
 
 	.categories-section {

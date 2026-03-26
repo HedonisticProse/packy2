@@ -168,3 +168,37 @@ export async function deleteCategory(categoryId) {
 		arr_items: trip.arr_items.filter((item) => item.int_category_id !== categoryId)
 	}));
 }
+
+// Add bag
+export async function addBag(bagName) {
+	if (!bagName) return;
+	await updateAndSave((trip) => {
+		const newBag = {
+			int_id: Date.now(),
+			str_name: bagName,
+			int_order: trip.arr_bags.length
+		};
+		return { ...trip, arr_bags: [...trip.arr_bags, newBag] };
+	});
+}
+
+// Rename bag
+export async function renameBag(bagId, newName) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_bags: trip.arr_bags.map((bag) =>
+			bag.int_id === bagId ? { ...bag, str_name: newName } : bag
+		)
+	}));
+}
+
+// Delete bag (nulls out int_bag_id on any items referencing it)
+export async function deleteBag(bagId) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_bags: trip.arr_bags.filter((bag) => bag.int_id !== bagId),
+		arr_items: trip.arr_items.map((item) =>
+			item.int_bag_id === bagId ? { ...item, int_bag_id: null } : item
+		)
+	}));
+}
