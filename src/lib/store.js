@@ -117,6 +117,16 @@ export async function toggleItem(categoryId, itemId) {
 	}));
 }
 
+// Update item fields (partial — only provided fields are overwritten)
+export async function updateItem(/** @type {number} */ itemId, /** @type {object} */ updatedFields) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_items: trip.arr_items.map((item) =>
+			item.int_id === itemId ? { ...item, ...updatedFields } : item
+		)
+	}));
+}
+
 // Delete item
 export async function deleteItem(categoryId, itemId) {
 	await updateAndSave((trip) => ({

@@ -1,8 +1,11 @@
 <script>
 	import { toggleItem, deleteItem } from '$lib/store.js';
+	import ItemEditModal from './ItemEditModal.svelte';
 
 	export let items;
 	export let categoryId;
+
+	let editingItem = null;
 </script>
 
 {#if items && items.length > 0}
@@ -14,7 +17,7 @@
 					checked={item.bool_packed}
 					on:change={() => toggleItem(categoryId, item.int_id)}
 				/>
-				<span class="item-name">{item.str_name}</span>
+				<button class="item-name" on:click={() => (editingItem = item)}>{item.str_name}</button>
 				<button class="delete-btn" on:click={() => deleteItem(categoryId, item.int_id)}>
 					Delete
 				</button>
@@ -23,6 +26,10 @@
 	</ul>
 {:else}
 	<p class="empty-items">No items in this category yet.</p>
+{/if}
+
+{#if editingItem}
+	<ItemEditModal item={editingItem} onClose={() => (editingItem = null)} />
 {/if}
 
 <style>
@@ -47,6 +54,13 @@
 
 	.item-name {
 		flex: 1;
+		text-align: left;
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		cursor: pointer;
+		color: inherit;
 	}
 
 	.delete-btn {
