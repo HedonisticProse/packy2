@@ -12,6 +12,7 @@ import {
 	getTrip,
 	clearTrip
 } from './storage.js';
+import { parseQuantity } from './quantity.js';
 
 // Initialize empty - will be loaded async
 export const tripStore = writable(null);
@@ -53,6 +54,11 @@ export async function updateTrip(fields) {
 		if (dep && ret) {
 			updated.int_duration =
 				Math.ceil((new Date(ret) - new Date(dep)) / (1000 * 60 * 60 * 24)) + 1;
+			// Recompute int_quantity for all items when duration changes
+			updated.arr_items = updated.arr_items.map((item) => ({
+				...item,
+				int_quantity: parseQuantity(item.str_quantity, updated.int_duration)
+			}));
 		}
 		return updated;
 	});
@@ -108,6 +114,8 @@ export async function addItem(categoryId, itemName) {
 		const newItem = {
 			int_id: Date.now(), // Item's ID, currently just date now.
 			str_name: itemName, // Item's name
+			str_quantity: '', // Raw quantity expression
+			int_quantity: 1, // Evaluated quantity (default 1)
 			bool_packed: false, // Used by all items
 			bool_validated: false, // Valides correct quantity
 			int_category_id: categoryId, // Foreign key to category
@@ -137,9 +145,14 @@ export async function toggleItem(categoryId, itemId) {
 export async function updateItem(/** @type {number} */ itemId, /** @type {object} */ updatedFields) {
 	await updateAndSave((trip) => ({
 		...trip,
-		arr_items: trip.arr_items.map((item) =>
-			item.int_id === itemId ? { ...item, ...updatedFields } : item
-		)
+		arr_items: trip.arr_items.map((item) => {
+			if (item.int_id !== itemId) return item;
+			const merged = { ...item, ...updatedFields };
+			if ('str_quantity' in updatedFields) {
+				merged.int_quantity = parseQuantity(merged.str_quantity, trip.int_duration);
+			}
+			return merged;
+		})
 	}));
 }
 

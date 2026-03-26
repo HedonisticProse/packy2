@@ -18,7 +18,9 @@
 					checked={item.bool_packed}
 					on:change={() => toggleItem(categoryId, item.int_id)}
 				/>
-				<button class="item-name" on:click={() => (editingItem = item)}>{item.str_name}</button>
+				<button class="item-name" on:click={() => (editingItem = item)}>
+					{item.str_name}&nbsp;<span class="qty">×{item.int_quantity ?? 1}</span>
+				</button>
 				<button class="delete-btn" on:click={() => deleteItem(categoryId, item.int_id)}>
 					Delete
 				</button>
@@ -71,6 +73,12 @@
 
 	.empty-items {
 		color: #999;
+		font-style: italic;
+	}
+
+	.qty {
+		font-size: 0.8em;
+		color: #888;
 		font-style: italic;
 	}
 </style>
