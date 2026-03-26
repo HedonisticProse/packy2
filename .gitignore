@@ -28,3 +28,4 @@ vite.config.ts.timestamp-*
 /.user
 CLAUDE.md
 justfile
+/.tmp.driveupload
