@@ -135,6 +135,16 @@ export async function deleteItem(categoryId, itemId) {
 	}));
 }
 
+// Rename category
+export async function renameCategory(/** @type {number} */ categoryId, /** @type {string} */ newName) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_categories: trip.arr_categories.map((/** @type {any} */ cat) =>
+			cat.int_id === categoryId ? { ...cat, str_name: newName } : cat
+		)
+	}));
+}
+
 // Delete category (and all its items)
 export async function deleteCategory(categoryId) {
 	await updateAndSave((trip) => ({

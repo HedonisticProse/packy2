@@ -1,6 +1,6 @@
 <script>
 	import ItemList from './ItemList.svelte';
-	import { addItem } from '$lib/store.js';
+	import { addItem, renameCategory, deleteCategory } from '$lib/store.js';
 
 	export let category;
 	export let items; // All items from parent
@@ -9,6 +9,27 @@
 	$: categoryItems = items.filter((item) => item.int_category_id === category.int_id);
 
 	let newItemName = '';
+	let isRenaming = false;
+	let draftName = '';
+
+	function startRename() {
+		draftName = category.str_name;
+		isRenaming = true;
+	}
+
+	async function handleRename() {
+		if (!draftName.trim()) return;
+		await renameCategory(category.int_id, draftName.trim());
+		isRenaming = false;
+	}
+
+	function cancelRename() {
+		isRenaming = false;
+	}
+
+	async function handleDelete() {
+		await deleteCategory(category.int_id);
+	}
 
 	async function handleAddItem() {
 		if (!newItemName) return;
@@ -18,7 +39,23 @@
 </script>
 
 <div class="category">
-	<h3>{category.str_name}</h3>
+	<div class="category-header">
+		{#if isRenaming}
+			<input
+				class="rename-input"
+				type="text"
+				bind:value={draftName}
+				on:keydown={(e) => e.key === 'Enter' && handleRename()}
+				on:keydown={(e) => e.key === 'Escape' && cancelRename()}
+			/>
+			<button on:click={handleRename}>Save</button>
+			<button on:click={cancelRename}>Cancel</button>
+		{:else}
+			<h3>{category.str_name}</h3>
+			<button on:click={startRename}>Rename</button>
+			<button class="delete-btn" on:click={handleDelete}>Delete</button>
+		{/if}
+	</div>
 
 	<div class="add-item">
 		<input
@@ -41,9 +78,22 @@
 		border-radius: 4px;
 	}
 
-	.category h3 {
-		margin-top: 0;
+	.category-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 		margin-bottom: 1rem;
+	}
+
+	.category-header h3 {
+		margin: 0;
+		flex: 1;
+	}
+
+	.rename-input {
+		flex: 1;
+		padding: 0.25rem 0.5rem;
+		font-size: 1rem;
 	}
 
 	.add-item {
@@ -55,5 +105,9 @@
 	.add-item input {
 		flex: 1;
 		padding: 0.5rem;
+	}
+
+	.delete-btn {
+		margin-left: auto;
 	}
 </style>
