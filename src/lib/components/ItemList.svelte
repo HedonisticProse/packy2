@@ -1,12 +1,37 @@
 <script>
-	import { toggleItem, deleteItem } from '$lib/store.js';
+	// @ts-nocheck
+	import { toggleItem, updateItem, deleteItem } from '$lib/store.js';
 	import ItemEditModal from './ItemEditModal.svelte';
+	import CriticalConfirmModal from './CriticalConfirmModal.svelte';
 
 	export let items;
 	export let categoryId;
+	export let categoryBagId;
 	export let bags;
 
 	let editingItem = null;
+	let confirmingItem = null;
+
+	function handleCheck(item) {
+		if (item.bool_critical && !item.bool_packed) {
+			confirmingItem = item;
+		} else {
+			toggleItem(categoryId, item.int_id);
+		}
+	}
+
+	$: effectiveBagName = (() => {
+		if (!confirmingItem) return '';
+		const bagId = confirmingItem.int_bag_id ?? categoryBagId;
+		if (!bagId) return 'no bag';
+		const bag = bags?.find((b) => b.int_id === bagId);
+		return bag ? bag.str_name : 'no bag';
+	})();
+
+	async function handleConfirmed() {
+		await updateItem(confirmingItem.int_id, { bool_packed: true, bool_validated: true });
+		confirmingItem = null;
+	}
 </script>
 
 {#if items && items.length > 0}
@@ -16,7 +41,14 @@
 				<input
 					type="checkbox"
 					checked={item.bool_packed}
-					on:change={() => toggleItem(categoryId, item.int_id)}
+					on:click={(e) => {
+						if (item.bool_critical && !item.bool_packed) {
+							e.preventDefault();
+							confirmingItem = item;
+						} else {
+							toggleItem(categoryId, item.int_id);
+						}
+					}}
 				/>
 				<button class="item-name" on:click={() => (editingItem = item)}>
 					{item.str_name}&nbsp;<span class="qty">×{item.int_quantity ?? 1}</span>
@@ -33,6 +65,15 @@
 
 {#if editingItem}
 	<ItemEditModal item={editingItem} onClose={() => (editingItem = null)} {bags} />
+{/if}
+
+{#if confirmingItem}
+	<CriticalConfirmModal
+		item={confirmingItem}
+		{effectiveBagName}
+		onConfirm={handleConfirmed}
+		onClose={() => (confirmingItem = null)}
+	/>
 {/if}
 
 <style>

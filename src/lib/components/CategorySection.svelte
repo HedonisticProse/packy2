@@ -79,7 +79,7 @@
 		<button on:click={handleAddItem}>Add Item</button>
 	</div>
 
-	<ItemList items={categoryItems} categoryId={category.int_id} {bags} />
+	<ItemList items={categoryItems} categoryId={category.int_id} categoryBagId={category.int_bag_id} {bags} />
 </div>
 
 <style>
