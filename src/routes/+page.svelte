@@ -6,8 +6,10 @@
 	import TripHeader from '$lib/components/TripHeader.svelte';
 	import CategorySection from '$lib/components/CategorySection.svelte';
 	import BagSection from '$lib/components/BagSection.svelte';
+	import PackingView from '$lib/components/PackingView.svelte';
 
 	let isLoading = true;
+	let activeTab = 'list';
 	let showForm = false;
 	let tripName = '';
 	let departureDate = '';
@@ -129,25 +131,38 @@
 			</div>
 		</div>
 
-		<div class="categories-section">
-			<h2>Packing List</h2>
-
-			<div class="add-category">
-				<input
-					type="text"
-					bind:value={newCategoryName}
-					placeholder="Category name (e.g., Clothing)"
-					on:keydown={(e) => e.key === 'Enter' && handleAddCategory()}
-				/>
-				<button on:click={handleAddCategory}>Add Category</button>
+		<div class="packing-section">
+			<div class="tabs">
+				<button class:active={activeTab === 'list'} on:click={() => (activeTab = 'list')}>List</button>
+				<button class:active={activeTab === 'pack'} on:click={() => (activeTab = 'pack')}>Pack</button>
 			</div>
 
-			{#if $tripStore.arr_categories && $tripStore.arr_categories.length > 0}
-				{#each $tripStore.arr_categories as category (category.int_id)}
-					<CategorySection {category} items={$tripStore.arr_items} bags={$tripStore.arr_bags} />
-				{/each}
+			{#if activeTab === 'list'}
+				<div class="categories-section">
+					<div class="add-category">
+						<input
+							type="text"
+							bind:value={newCategoryName}
+							placeholder="Category name (e.g., Clothing)"
+							on:keydown={(e) => e.key === 'Enter' && handleAddCategory()}
+						/>
+						<button on:click={handleAddCategory}>Add Category</button>
+					</div>
+
+					{#if $tripStore.arr_categories && $tripStore.arr_categories.length > 0}
+						{#each $tripStore.arr_categories as category (category.int_id)}
+							<CategorySection {category} items={$tripStore.arr_items} bags={$tripStore.arr_bags} />
+						{/each}
+					{:else}
+						<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>
+					{/if}
+				</div>
 			{:else}
-				<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>
+				<PackingView
+					items={$tripStore.arr_items}
+					categories={$tripStore.arr_categories}
+					bags={$tripStore.arr_bags}
+				/>
 			{/if}
 		</div>
 	</div>
@@ -258,13 +273,25 @@
 		margin-top: 1rem;
 	}
 
-	.categories-section {
+	.packing-section {
 		margin-top: 2rem;
 		text-align: left;
 	}
 
-	.categories-section h2 {
+	.tabs {
+		display: flex;
+		gap: 0.5rem;
 		margin-bottom: 1rem;
+	}
+
+	.tabs button.active {
+		background: #333;
+		color: #fff;
+		border-color: #333;
+	}
+
+	.categories-section {
+		text-align: left;
 	}
 
 	.add-category {
