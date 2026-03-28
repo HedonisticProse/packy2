@@ -64,7 +64,7 @@
 	.overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: var(--color-overlay);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -72,7 +72,7 @@
 	}
 
 	.modal {
-		background: #fff;
+		background: var(--color-surface);
 		padding: 1.5rem;
 		border-radius: 6px;
 		min-width: 320px;
@@ -96,7 +96,7 @@
 	label input[type='text'] {
 		padding: 0.5rem;
 		font-size: 1rem;
-		border: 1px solid #ccc;
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 	}
 

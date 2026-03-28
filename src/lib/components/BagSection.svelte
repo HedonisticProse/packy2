@@ -1,68 +1,45 @@
 <script>
-	import { renameBag, deleteBag } from '$lib/store.js';
+	import BagEditModal from './BagEditModal.svelte';
 
 	export let bag;
 
-	let isRenaming = false;
-	let draftName = '';
-
-	function startRename() {
-		draftName = bag.str_name;
-		isRenaming = true;
-	}
-
-	async function handleRename() {
-		if (!draftName.trim()) return;
-		await renameBag(bag.int_id, draftName.trim());
-		isRenaming = false;
-	}
-
-	function cancelRename() {
-		isRenaming = false;
-	}
-
-	async function handleDelete() {
-		await deleteBag(bag.int_id);
-	}
+	let editOpen = false;
 </script>
 
 <div class="bag">
 	<div class="bag-header">
-		{#if isRenaming}
-			<input
-				class="rename-input"
-				type="text"
-				bind:value={draftName}
-				on:keydown={(e) => e.key === 'Enter' && handleRename()}
-				on:keydown={(e) => e.key === 'Escape' && cancelRename()}
-			/>
-			<button on:click={handleRename}>Save</button>
-			<button on:click={cancelRename}>Cancel</button>
-		{:else}
-			<span class="bag-name">{bag.str_name}</span>
-			<button on:click={startRename}>Rename</button>
-			<button class="delete-btn" on:click={handleDelete}>Delete</button>
-		{/if}
+		<button class="bag-name" on:click={() => (editOpen = true)}>{bag.str_name}</button>
 	</div>
 </div>
+
+{#if editOpen}
+	<BagEditModal {bag} onClose={() => (editOpen = false)} />
+{/if}
 
 <style>
 	.bag {
 		margin-bottom: 0.5rem;
 	}
+
 	.bag-header {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
 	}
+
 	.bag-name {
+		flex: 1;
+		text-align: left;
 		font-weight: 500;
-		flex: 1;
+		background: none;
+		border: none;
+		padding: 0.4rem 0.25rem;
+		font: inherit;
+		cursor: pointer;
+		color: var(--color-text);
+		border-bottom: 1px solid var(--color-border-light);
 	}
-	.rename-input {
-		flex: 1;
-	}
-	.delete-btn {
-		margin-left: auto;
+
+	.bag-name:hover {
+		color: var(--color-primary-dark);
 	}
 </style>

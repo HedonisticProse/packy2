@@ -1,28 +1,19 @@
 <script>
-	import { updateItem, deleteItem } from '$lib/store.js';
+	import { renameBag, deleteBag } from '$lib/store.js';
 
-	export let item;
+	export let bag;
 	export let onClose;
-	export let bags;
 
-	let draftName = item.str_name;
-	let draftQuantity = item.str_quantity ?? '';
-	let draftCritical = item.bool_critical;
-	let draftBagId = item.int_bag_id ?? '';
+	let draftName = bag.str_name;
 
 	async function handleSave() {
 		if (!draftName.trim()) return;
-		await updateItem(item.int_id, {
-			str_name: draftName.trim(),
-			str_quantity: draftQuantity,
-			bool_critical: draftCritical,
-			int_bag_id: draftBagId === '' ? null : Number(draftBagId)
-		});
+		await renameBag(bag.int_id, draftName.trim());
 		onClose();
 	}
 
 	async function handleDelete() {
-		await deleteItem(item.int_category_id, item.int_id);
+		await deleteBag(bag.int_id);
 		onClose();
 	}
 
@@ -40,7 +31,7 @@
 	on:keydown={(e) => e.key === 'Escape' && onClose()}
 >
 	<div class="modal-box">
-		<h3>Edit Item</h3>
+		<h3>Edit Bag</h3>
 
 		<label>
 			Name
@@ -50,33 +41,6 @@
 				on:keydown={(e) => e.key === 'Enter' && handleSave()}
 			/>
 		</label>
-
-		<label>
-			Quantity
-			<input
-				type="text"
-				bind:value={draftQuantity}
-				placeholder="e.g. 3 or (2d+1)"
-				on:keydown={(e) => e.key === 'Enter' && handleSave()}
-			/>
-		</label>
-
-		<label class="checkbox-label">
-			<input type="checkbox" bind:checked={draftCritical} />
-			Critical
-		</label>
-
-		{#if bags && bags.length > 0}
-			<label>
-				Bag
-				<select bind:value={draftBagId}>
-					<option value="">Default (category bag)</option>
-					{#each bags as bag (bag.int_id)}
-						<option value={bag.int_id}>{bag.str_name}</option>
-					{/each}
-				</select>
-			</label>
-		{/if}
 
 		<div class="modal-actions">
 			<button on:click={handleSave} disabled={!draftName.trim()}>Save</button>
@@ -118,10 +82,11 @@
 		font-size: 0.875rem;
 	}
 
-	.checkbox-label {
-		flex-direction: row;
-		align-items: center;
-		gap: 0.5rem;
+	label input {
+		padding: 0.5rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		font-size: 1rem;
 	}
 
 	.modal-actions {
@@ -129,7 +94,32 @@
 		gap: 0.5rem;
 	}
 
+	button {
+		padding: 0.4rem 0.9rem;
+		cursor: pointer;
+		border: 1px solid var(--color-border);
+		background: var(--color-btn-bg);
+		border-radius: 4px;
+		font-size: 0.875rem;
+	}
+
+	button:hover {
+		background: var(--color-btn-hover);
+	}
+
+	button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
 	.delete-btn {
 		margin-left: auto;
+		border-color: var(--color-danger);
+		color: var(--color-danger);
+		background: transparent;
+	}
+
+	.delete-btn:hover {
+		background: var(--color-danger-light);
 	}
 </style>

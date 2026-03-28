@@ -1,39 +1,32 @@
 <script>
 	// @ts-nocheck
-	import { addTask, renameStage, deleteStage, toggleTask, updateTask } from '$lib/store.js';
+	import { flip } from 'svelte/animate';
+	import { dndzone } from 'svelte-dnd-action';
+	import { addTask, toggleTask, updateTask, reorderTasks } from '$lib/store.js';
+	import StageEditModal from './StageEditModal.svelte';
 	import TaskEditModal from './TaskEditModal.svelte';
 	import TaskConfirmModal from './TaskConfirmModal.svelte';
 
 	export let stage;
 	export let tasks;
 
-	$: stageTasks = tasks
+	$: localTasks = tasks
 		.filter((t) => t.int_stage_id === stage.int_id)
-		.sort((a, b) => a.int_order - b.int_order);
+		.sort((a, b) => a.int_order - b.int_order)
+		.map((t) => ({ ...t, id: t.int_id }));
 
 	let newTaskDescription = '';
-	let isRenaming = false;
-	let draftName = '';
+	let editOpen = false;
 	let editingTask = null;
 	let confirmingTask = null;
 
-	function startRename() {
-		draftName = stage.str_name;
-		isRenaming = true;
+	function handleDndConsider(e) {
+		localTasks = e.detail.items;
 	}
 
-	async function handleRename() {
-		if (!draftName.trim()) return;
-		await renameStage(stage.int_id, draftName.trim());
-		isRenaming = false;
-	}
-
-	function cancelRename() {
-		isRenaming = false;
-	}
-
-	async function handleDeleteStage() {
-		await deleteStage(stage.int_id);
+	function handleDndFinalize(e) {
+		localTasks = e.detail.items;
+		reorderTasks(stage.int_id, localTasks.map((t) => t.int_id));
 	}
 
 	async function handleAddTask() {
@@ -50,21 +43,7 @@
 
 <div class="stage">
 	<div class="stage-header">
-		{#if isRenaming}
-			<input
-				class="rename-input"
-				type="text"
-				bind:value={draftName}
-				on:keydown={(e) => e.key === 'Enter' && handleRename()}
-				on:keydown={(e) => e.key === 'Escape' && cancelRename()}
-			/>
-			<button on:click={handleRename}>Save</button>
-			<button on:click={cancelRename}>Cancel</button>
-		{:else}
-			<h3>{stage.str_name}</h3>
-			<button on:click={startRename}>Rename</button>
-			<button class="delete-btn" on:click={handleDeleteStage}>Delete</button>
-		{/if}
+		<button class="stage-name" on:click={() => (editOpen = true)}>{stage.str_name}</button>
 	</div>
 
 	<div class="add-task">
@@ -77,10 +56,16 @@
 		<button on:click={handleAddTask}>Add Task</button>
 	</div>
 
-	{#if stageTasks.length > 0}
-		<ul class="task-list">
-			{#each stageTasks as task (task.int_id)}
-				<li class:done={task.bool_done}>
+	{#if localTasks.length > 0}
+		<ul
+			class="task-list"
+			use:dndzone={{ items: localTasks, flipDurationMs: 200 }}
+			on:consider={handleDndConsider}
+			on:finalize={handleDndFinalize}
+		>
+			{#each localTasks as task (task.id)}
+				<li class:done={task.bool_done} animate:flip={{ duration: 200 }}>
+					<span class="drag-handle">⠿</span>
 					<input
 						type="checkbox"
 						checked={task.bool_done}
@@ -104,6 +89,10 @@
 	{/if}
 </div>
 
+{#if editOpen}
+	<StageEditModal {stage} onClose={() => (editOpen = false)} />
+{/if}
+
 {#if editingTask}
 	<TaskEditModal task={editingTask} onClose={() => (editingTask = null)} />
 {/if}
@@ -120,30 +109,28 @@
 	.stage {
 		margin-bottom: 2rem;
 		padding: 1rem;
-		border: 1px solid #ddd;
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 	}
 
 	.stage-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
 		margin-bottom: 1rem;
 	}
 
-	.stage-header h3 {
-		margin: 0;
-		flex: 1;
-	}
-
-	.rename-input {
-		flex: 1;
-		padding: 0.25rem 0.5rem;
+	.stage-name {
 		font-size: 1rem;
+		font-weight: 600;
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		color: var(--color-text);
 	}
 
-	.delete-btn {
-		margin-left: auto;
+	.stage-name:hover {
+		color: var(--color-primary-dark);
 	}
 
 	.add-task {
@@ -155,6 +142,21 @@
 	.add-task input {
 		flex: 1;
 		padding: 0.5rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+
+	button {
+		padding: 0.4rem 0.9rem;
+		cursor: pointer;
+		border: 1px solid var(--color-border);
+		background: var(--color-btn-bg);
+		border-radius: 4px;
+		font-size: 0.875rem;
+	}
+
+	button:hover {
+		background: var(--color-btn-hover);
 	}
 
 	.task-list {
@@ -163,12 +165,23 @@
 		margin: 0;
 	}
 
+	.drag-handle {
+		color: var(--color-text-faint);
+		cursor: grab;
+		font-size: 1rem;
+		flex-shrink: 0;
+	}
+
+	.drag-handle:active {
+		cursor: grabbing;
+	}
+
 	.task-list li {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.4rem 0;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--color-border-light);
 	}
 
 	.task-list li:last-child {
@@ -177,7 +190,7 @@
 
 	.task-list li.done .task-description {
 		text-decoration: line-through;
-		color: #999;
+		color: var(--color-text-faint);
 	}
 
 	.task-description {
@@ -194,13 +207,13 @@
 	.critical-badge {
 		display: inline-block;
 		margin-left: 0.4rem;
-		color: #c00;
+		color: var(--color-danger);
 		font-weight: bold;
 		font-size: 0.85em;
 	}
 
 	.empty-tasks {
-		color: #999;
+		color: var(--color-text-faint);
 		font-style: italic;
 	}
 </style>

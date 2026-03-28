@@ -1,6 +1,7 @@
 <script>
 	import ItemList from './ItemList.svelte';
-	import { addItem, renameCategory, deleteCategory, assignCategoryToBag } from '$lib/store.js';
+	import CategoryEditModal from './CategoryEditModal.svelte';
+	import { addItem } from '$lib/store.js';
 
 	export let category;
 	export let items; // All items from parent
@@ -10,27 +11,7 @@
 	$: categoryItems = items.filter((item) => item.int_category_id === category.int_id);
 
 	let newItemName = '';
-	let isRenaming = false;
-	let draftName = '';
-
-	function startRename() {
-		draftName = category.str_name;
-		isRenaming = true;
-	}
-
-	async function handleRename() {
-		if (!draftName.trim()) return;
-		await renameCategory(category.int_id, draftName.trim());
-		isRenaming = false;
-	}
-
-	function cancelRename() {
-		isRenaming = false;
-	}
-
-	async function handleDelete() {
-		await deleteCategory(category.int_id);
-	}
+	let editOpen = false;
 
 	async function handleAddItem() {
 		if (!newItemName) return;
@@ -41,32 +22,7 @@
 
 <div class="category">
 	<div class="category-header">
-		{#if isRenaming}
-			<input
-				class="rename-input"
-				type="text"
-				bind:value={draftName}
-				on:keydown={(e) => e.key === 'Enter' && handleRename()}
-				on:keydown={(e) => e.key === 'Escape' && cancelRename()}
-			/>
-			<button on:click={handleRename}>Save</button>
-			<button on:click={cancelRename}>Cancel</button>
-		{:else}
-			<h3>{category.str_name}</h3>
-			{#if bags && bags.length > 0}
-				<select
-					value={category.int_bag_id ?? ''}
-					on:change={(e) => assignCategoryToBag(category.int_id, e.target.value ? Number(e.target.value) : null)}
-				>
-					<option value="">No bag</option>
-					{#each bags as bag (bag.int_id)}
-						<option value={bag.int_id}>{bag.str_name}</option>
-					{/each}
-				</select>
-			{/if}
-			<button on:click={startRename}>Rename</button>
-			<button class="delete-btn" on:click={handleDelete}>Delete</button>
-		{/if}
+		<button class="category-name" on:click={() => (editOpen = true)}>{category.str_name}</button>
 	</div>
 
 	<div class="add-item">
@@ -82,30 +38,36 @@
 	<ItemList items={categoryItems} categoryId={category.int_id} categoryBagId={category.int_bag_id} {bags} />
 </div>
 
+{#if editOpen}
+	<CategoryEditModal {category} {bags} onClose={() => (editOpen = false)} />
+{/if}
+
 <style>
 	.category {
 		margin-bottom: 2rem;
 		padding: 1rem;
-		border: 1px solid #ddd;
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 	}
 
 	.category-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
 		margin-bottom: 1rem;
 	}
 
-	.category-header h3 {
-		margin: 0;
-		flex: 1;
+	.category-name {
+		font-size: 1rem;
+		font-weight: 600;
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		color: var(--color-text);
 	}
 
-	.rename-input {
-		flex: 1;
-		padding: 0.25rem 0.5rem;
-		font-size: 1rem;
+	.category-name:hover {
+		color: var(--color-primary-dark);
 	}
 
 	.add-item {
@@ -119,7 +81,16 @@
 		padding: 0.5rem;
 	}
 
-	.delete-btn {
-		margin-left: auto;
+	button {
+		padding: 0.4rem 0.9rem;
+		cursor: pointer;
+		border: 1px solid var(--color-border);
+		background: var(--color-btn-bg);
+		border-radius: 4px;
+		font-size: 0.875rem;
+	}
+
+	button:hover {
+		background: var(--color-btn-hover);
 	}
 </style>

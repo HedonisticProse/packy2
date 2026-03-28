@@ -1,7 +1,20 @@
 <script>
-	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory, addBag, addStage } from '$lib/store.js';
+	import { flip } from 'svelte/animate';
+	import { dndzone } from 'svelte-dnd-action';
+	import {
+		tripStore,
+		initializeTripStore,
+		createTrip,
+		clearTripState,
+		addCategory,
+		addBag,
+		addStage,
+		assignCategoryToBag,
+		reorderCategories,
+		reorderBags,
+		reorderStages
+	} from '$lib/store.js';
 	import { saveTrip, saveTemplate } from '$lib/export.js';
 	import { importPackyFile } from '$lib/import.js';
 	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
@@ -11,8 +24,28 @@
 	import PackingView from '$lib/components/PackingView.svelte';
 	import StageSection from '$lib/components/StageSection.svelte';
 
+	const TAB_STORAGE_KEY = 'packy-last-tab';
+	const TABS = ['tripinfo', 'bags', 'items', 'assignment', 'pack', 'stages'];
+
 	let isLoading = true;
-	let activeTab = 'list';
+	let activeTab = 'items';
+
+	// Local arrays for dnd (require `id` field; sorted by int_order)
+	let localBags = [];
+	let localCategories = [];
+	let localStages = [];
+
+	$: localBags = [...($tripStore?.arr_bags ?? [])]
+		.sort((a, b) => a.int_order - b.int_order)
+		.map((b) => ({ ...b, id: b.int_id }));
+
+	$: localCategories = [...($tripStore?.arr_categories ?? [])]
+		.sort((a, b) => a.int_order - b.int_order)
+		.map((c) => ({ ...c, id: c.int_id }));
+
+	$: localStages = [...($tripStore?.arr_stages ?? [])]
+		.sort((a, b) => a.int_order - b.int_order)
+		.map((s) => ({ ...s, id: s.int_id }));
 	let showForm = false;
 	let tripName = '';
 	let departureDate = '';
@@ -22,38 +55,39 @@
 	let newStageName = '';
 	let fileInput;
 
-	$: calculatedDuration = departureDate && returnDate
-		? calculateDays(departureDate, returnDate)
-		: 0;
+	$: calculatedDuration =
+		departureDate && returnDate ? calculateDays(departureDate, returnDate) : 0;
 
 	onMount(async () => {
-		// Step 1: Migrate from localStorage (transforms nested → flat)
+		const saved = localStorage.getItem(TAB_STORAGE_KEY);
+		if (saved && TABS.includes(saved)) activeTab = saved;
+
 		await migrateFromLocalStorage();
-
-		// Step 2: Initialize store from IndexedDB
 		await initializeTripStore();
-
 		isLoading = false;
 	});
+
+	function setTab(tab) {
+		activeTab = tab;
+		localStorage.setItem(TAB_STORAGE_KEY, tab);
+	}
 
 	function calculateDays(departure, returnVal) {
 		const start = new Date(departure);
 		const end = new Date(returnVal);
 		const diffTime = end - start;
 		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-		return diffDays + 1; // Inclusive (same day = 1 day)
+		return diffDays + 1;
 	}
 
 	async function handleCreateTrip() {
-		if (!tripName || !departureDate || !returnDate) {
-			return;
-		}
-
+		if (!tripName || !departureDate || !returnDate) return;
 		await createTrip(tripName, departureDate, returnDate, calculateDays(departureDate, returnDate));
 		showForm = false;
 		tripName = '';
 		departureDate = '';
 		returnDate = '';
+		setTab('items');
 	}
 
 	async function handleClearTrip() {
@@ -65,6 +99,7 @@
 		if (!file) return;
 		try {
 			await importPackyFile(file);
+			setTab('items');
 		} catch (err) {
 			console.error('Import failed:', err);
 		}
@@ -95,11 +130,25 @@
 		await addStage(newStageName.trim());
 		newStageName = '';
 	}
-</script>
 
-<div class="logo-container">
-	<img src={base + '/logo.png'} alt="Packy2 Logo" />
-</div>
+	function handleBagsDndConsider(e) { localBags = e.detail.items; }
+	function handleBagsDndFinalize(e) {
+		localBags = e.detail.items;
+		reorderBags(localBags.map((b) => b.int_id));
+	}
+
+	function handleCategoriesDndConsider(e) { localCategories = e.detail.items; }
+	function handleCategoriesDndFinalize(e) {
+		localCategories = e.detail.items;
+		reorderCategories(localCategories.map((c) => c.int_id));
+	}
+
+	function handleStagesDndConsider(e) { localStages = e.detail.items; }
+	function handleStagesDndFinalize(e) {
+		localStages = e.detail.items;
+		reorderStages(localStages.map((s) => s.int_id));
+	}
+</script>
 
 <input
 	type="file"
@@ -115,7 +164,7 @@
 	</div>
 {:else if !$tripStore && !showForm}
 	<div class="empty-state">
-		<p>No trip yet</p>
+		<p>No trip loaded.</p>
 		<button on:click={() => (showForm = true)}>Start New Trip</button>
 		<button on:click={() => fileInput.click()}>Import Trip</button>
 	</div>
@@ -136,7 +185,10 @@
 				<input id="returnDate" type="date" bind:value={returnDate} required />
 			</div>
 			{#if calculatedDuration > 0}
-				<p class="duration">Duration: {calculatedDuration} {calculatedDuration === 1 ? 'day' : 'days'}</p>
+				<p class="duration">
+					Duration: {calculatedDuration}
+					{calculatedDuration === 1 ? 'day' : 'days'}
+				</p>
 			{/if}
 			<div class="button-group">
 				<button type="submit">Create Trip</button>
@@ -146,112 +198,176 @@
 	</div>
 {:else if $tripStore}
 	<div class="trip-display">
-		<TripHeader trip={$tripStore} onClear={handleClearTrip} />
+		<!-- Tab Bar -->
+		<nav class="tabs" aria-label="Trip sections">
+			<button class:active={activeTab === 'tripinfo'} on:click={() => setTab('tripinfo')}>Trip</button>
+			<button class:active={activeTab === 'bags'} on:click={() => setTab('bags')}>Bags</button>
+			<button class:active={activeTab === 'items'} on:click={() => setTab('items')}>Items</button>
+			<button class:active={activeTab === 'assignment'} on:click={() => setTab('assignment')}>Assign</button>
+			<button class:active={activeTab === 'pack'} on:click={() => setTab('pack')}>Pack</button>
+			<button class:active={activeTab === 'stages'} on:click={() => setTab('stages')}>Stages</button>
+		</nav>
 
-		<div class="export-actions">
-			<button on:click={handleSaveTrip}>Save Trip</button>
-			<button on:click={handleSaveTemplate}>Save Template</button>
-			<button on:click={() => fileInput.click()}>Import Trip</button>
-		</div>
-
-		<div class="bags-section">
-			<h2>Bags</h2>
-
-			{#if $tripStore.arr_bags && $tripStore.arr_bags.length > 0}
-				{#each $tripStore.arr_bags as bag (bag.int_id)}
-					<BagSection {bag} />
-				{/each}
-			{:else}
-				<p class="empty-bags">No bags yet.</p>
-			{/if}
-
-			<div class="add-bag">
-				<input
-					type="text"
-					bind:value={newBagName}
-					placeholder="Bag name (e.g., Carry-on)"
-					on:keydown={(e) => e.key === 'Enter' && handleAddBag()}
-				/>
-				<button on:click={handleAddBag}>Add Bag</button>
-			</div>
-		</div>
-
-		<div class="packing-section">
-			<div class="tabs">
-				<button class:active={activeTab === 'list'} on:click={() => (activeTab = 'list')}>List</button>
-				<button class:active={activeTab === 'tasks'} on:click={() => (activeTab = 'tasks')}>Tasks</button>
-				<button class:active={activeTab === 'pack'} on:click={() => (activeTab = 'pack')}>Pack</button>
+		<!-- Trip Info Tab -->
+		{#if activeTab === 'tripinfo'}
+			<div class="tab-content">
+				<TripHeader trip={$tripStore} onClear={handleClearTrip} />
+				<div class="export-actions">
+					<button on:click={handleSaveTrip}>Save Trip</button>
+					<button on:click={handleSaveTemplate}>Save Template</button>
+					<button on:click={() => fileInput.click()}>Import Trip</button>
+				</div>
 			</div>
 
-			{#if activeTab === 'list'}
-				<div class="categories-section">
-					<div class="add-category">
-						<input
-							type="text"
-							bind:value={newCategoryName}
-							placeholder="Category name (e.g., Clothing)"
-							on:keydown={(e) => e.key === 'Enter' && handleAddCategory()}
-						/>
-						<button on:click={handleAddCategory}>Add Category</button>
+		<!-- Bags Tab -->
+		{:else if activeTab === 'bags'}
+			<div class="tab-content">
+				<div class="add-row">
+					<input
+						type="text"
+						bind:value={newBagName}
+						placeholder="Bag name (e.g., Carry-on)"
+						on:keydown={(e) => e.key === 'Enter' && handleAddBag()}
+					/>
+					<button on:click={handleAddBag}>Add Bag</button>
+				</div>
+
+				{#if localBags.length > 0}
+					<div
+						class="dnd-list"
+						use:dndzone={{ items: localBags, flipDurationMs: 200 }}
+						on:consider={handleBagsDndConsider}
+						on:finalize={handleBagsDndFinalize}
+					>
+						{#each localBags as bag (bag.id)}
+							<div animate:flip={{ duration: 200 }}>
+								<BagSection {bag} />
+							</div>
+						{/each}
 					</div>
+				{:else}
+					<p class="empty-msg">No bags yet.</p>
+				{/if}
+			</div>
 
-					{#if $tripStore.arr_categories && $tripStore.arr_categories.length > 0}
+		<!-- Items Tab -->
+		{:else if activeTab === 'items'}
+			<div class="tab-content">
+				<div class="add-row">
+					<input
+						type="text"
+						bind:value={newCategoryName}
+						placeholder="Category name (e.g., Clothing)"
+						on:keydown={(e) => e.key === 'Enter' && handleAddCategory()}
+					/>
+					<button on:click={handleAddCategory}>Add Category</button>
+				</div>
+
+				{#if localCategories.length > 0}
+					<div
+						class="dnd-list"
+						use:dndzone={{ items: localCategories, flipDurationMs: 200 }}
+						on:consider={handleCategoriesDndConsider}
+						on:finalize={handleCategoriesDndFinalize}
+					>
+						{#each localCategories as category (category.id)}
+							<div animate:flip={{ duration: 200 }}>
+								<CategorySection
+									{category}
+									items={$tripStore.arr_items}
+									bags={$tripStore.arr_bags}
+								/>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="empty-msg">No categories yet. Add a category to start organizing your items.</p>
+				{/if}
+			</div>
+
+		<!-- Assignment Tab -->
+		{:else if activeTab === 'assignment'}
+			<div class="tab-content">
+				{#if !$tripStore.arr_bags || $tripStore.arr_bags.length === 0}
+					<p class="empty-msg">Add bags first, then assign categories to them.</p>
+				{:else if !$tripStore.arr_categories || $tripStore.arr_categories.length === 0}
+					<p class="empty-msg">No categories yet. Add categories in the Items tab.</p>
+				{:else}
+					<p class="assignment-hint">Assign each category to a bag.</p>
+					<ul class="assignment-list">
 						{#each $tripStore.arr_categories as category (category.int_id)}
-							<CategorySection {category} items={$tripStore.arr_items} bags={$tripStore.arr_bags} />
+							<li class="assignment-row">
+								<span class="assignment-cat">{category.str_name}</span>
+								<select
+									value={category.int_bag_id ?? ''}
+									on:change={(e) =>
+										assignCategoryToBag(
+											category.int_id,
+											e.target.value ? Number(e.target.value) : null
+										)}
+								>
+									<option value="">No bag</option>
+									{#each $tripStore.arr_bags as bag (bag.int_id)}
+										<option value={bag.int_id}>{bag.str_name}</option>
+									{/each}
+								</select>
+							</li>
 						{/each}
-					{:else}
-						<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>
-					{/if}
-				</div>
-			{:else if activeTab === 'tasks'}
-				<div class="stages-section">
-					<div class="add-stage">
-						<input
-							type="text"
-							bind:value={newStageName}
-							placeholder="Stage name (e.g., Departure)"
-							on:keydown={(e) => e.key === 'Enter' && handleAddStage()}
-						/>
-						<button on:click={handleAddStage}>Add Stage</button>
-					</div>
+					</ul>
+				{/if}
+			</div>
 
-					{#if $tripStore.arr_stages && $tripStore.arr_stages.length > 0}
-						{#each $tripStore.arr_stages as stage (stage.int_id)}
-							<StageSection {stage} tasks={$tripStore.arr_tasks} />
-						{/each}
-					{:else}
-						<p class="empty-stages">No stages yet.</p>
-					{/if}
-				</div>
-			{:else}
+		<!-- Pack Tab -->
+		{:else if activeTab === 'pack'}
+			<div class="tab-content">
 				<PackingView
 					items={$tripStore.arr_items}
 					categories={$tripStore.arr_categories}
 					bags={$tripStore.arr_bags}
 				/>
-			{/if}
-		</div>
+			</div>
+
+		<!-- Stages Tab -->
+		{:else if activeTab === 'stages'}
+			<div class="tab-content">
+				<div class="add-row">
+					<input
+						type="text"
+						bind:value={newStageName}
+						placeholder="Stage name (e.g., Departure)"
+						on:keydown={(e) => e.key === 'Enter' && handleAddStage()}
+					/>
+					<button on:click={handleAddStage}>Add Stage</button>
+				</div>
+
+				{#if localStages.length > 0}
+					<div
+						class="dnd-list"
+						use:dndzone={{ items: localStages, flipDurationMs: 200 }}
+						on:consider={handleStagesDndConsider}
+						on:finalize={handleStagesDndFinalize}
+					>
+						{#each localStages as stage (stage.id)}
+							<div animate:flip={{ duration: 200 }}>
+								<StageSection {stage} tasks={$tripStore.arr_tasks} />
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="empty-msg">No stages yet.</p>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {/if}
 
 <style>
-	.logo-container {
-		display: flex;
-		justify-content: center;
-		padding: 2rem 0 1rem 0;
-	}
-
-	.logo-container img {
-		max-width: 300px;
-		height: auto;
-	}
-
 	.loading-state {
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		padding: 4rem 0;
-		color: #666;
+		color: var(--color-text-muted);
 		font-style: italic;
 	}
 
@@ -260,11 +376,12 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1rem;
+		padding: 2rem 0;
 	}
 
 	.trip-form {
 		max-width: 400px;
-		margin: 2rem auto;
+		margin: 1rem auto;
 		padding: 1rem;
 	}
 
@@ -278,6 +395,8 @@
 		width: 100%;
 		padding: 0.5rem;
 		margin-top: 0.25rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
 	}
 
 	.trip-form label {
@@ -285,122 +404,124 @@
 		font-weight: 500;
 	}
 
+	.duration {
+		color: var(--color-text-muted);
+	}
+
 	.button-group {
 		display: flex;
 		gap: 0.5rem;
 	}
 
-	.trip-display {
-		max-width: 600px;
-		margin: 0 auto;
-		padding: 0 2rem 2rem 2rem;
-		text-align: center;
-	}
-
 	button {
 		padding: 0.5rem 1rem;
 		cursor: pointer;
-		border: 1px solid #ccc;
-		background: #f0f0f0;
+		border: 1px solid var(--color-border);
+		background: var(--color-btn-bg);
 		border-radius: 4px;
+		font-size: 0.9rem;
 	}
 
 	button:hover {
-		background: #e0e0e0;
+		background: var(--color-btn-hover);
 	}
 
-	.duration {
-		color: #666;
+	/* Tab bar */
+	.tabs {
+		display: flex;
+		gap: 0.25rem;
+		margin-bottom: 1rem;
+		flex-wrap: wrap;
 	}
 
+	.tabs button {
+		padding: 0.4rem 0.75rem;
+		font-size: 0.85rem;
+	}
+
+	.tabs button.active {
+		background: var(--color-primary-dark);
+		color: var(--color-header-text);
+		border-color: var(--color-primary-dark);
+	}
+
+	.tab-content {
+		text-align: left;
+	}
+
+	/* Export actions */
 	.export-actions {
 		display: flex;
 		gap: 0.5rem;
 		margin-top: 1rem;
+		flex-wrap: wrap;
 	}
 
-	.bags-section {
-		margin-top: 2rem;
-		text-align: left;
-	}
-
-	.bags-section h2 {
-		margin-bottom: 1rem;
-	}
-
-	.add-bag {
+	/* Add row (shared by bags / items / stages tabs) */
+	.add-row {
 		display: flex;
 		gap: 0.5rem;
-		margin-top: 1rem;
+		margin-bottom: 1.5rem;
 	}
 
-	.add-bag input {
+	.add-row input {
 		flex: 1;
 		padding: 0.5rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		font-size: 0.9rem;
 	}
 
-	.empty-bags {
-		color: #999;
+	/* DnD list container */
+	.dnd-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		outline: none;
+	}
+
+	/* Empty messages */
+	.empty-msg {
+		color: var(--color-text-faint);
 		font-style: italic;
-		margin-top: 1rem;
+		margin-top: 0.5rem;
 	}
 
-	.packing-section {
-		margin-top: 2rem;
-		text-align: left;
+	/* Assignment tab */
+	.assignment-hint {
+		color: var(--color-text-muted);
+		font-size: 0.875rem;
+		margin-bottom: 0.75rem;
 	}
 
-	.tabs {
+	.assignment-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
 		display: flex;
+		flex-direction: column;
 		gap: 0.5rem;
-		margin-bottom: 1rem;
 	}
 
-	.tabs button.active {
-		background: #333;
-		color: #fff;
-		border-color: #333;
-	}
-
-	.categories-section {
-		text-align: left;
-	}
-
-	.stages-section {
-		text-align: left;
-	}
-
-	.add-stage {
+	.assignment-row {
 		display: flex;
-		gap: 0.5rem;
-		margin-bottom: 2rem;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		background: var(--color-surface);
 	}
 
-	.add-stage input {
+	.assignment-cat {
 		flex: 1;
-		padding: 0.5rem;
+		font-weight: 500;
 	}
 
-	.empty-stages {
-		color: #999;
-		font-style: italic;
-		margin-top: 1rem;
-	}
-
-	.add-category {
-		display: flex;
-		gap: 0.5rem;
-		margin-bottom: 2rem;
-	}
-
-	.add-category input {
-		flex: 1;
-		padding: 0.5rem;
-	}
-
-	.empty-categories {
-		color: #999;
-		font-style: italic;
-		margin-top: 1rem;
+	.assignment-row select {
+		padding: 0.3rem 0.5rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		font-size: 0.875rem;
 	}
 </style>

@@ -308,3 +308,58 @@ export async function toggleTask(taskId) {
 		)
 	}));
 }
+
+// --- Reorder actions ---
+// Each receives an ordered array of IDs and reassigns int_order sequentially.
+
+export async function reorderItems(categoryId, orderedIds) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_items: trip.arr_items.map((item) => {
+			if (item.int_category_id !== categoryId) return item;
+			const idx = orderedIds.indexOf(item.int_id);
+			return idx === -1 ? item : { ...item, int_order: idx };
+		})
+	}));
+}
+
+export async function reorderCategories(orderedIds) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_categories: trip.arr_categories.map((cat) => {
+			const idx = orderedIds.indexOf(cat.int_id);
+			return idx === -1 ? cat : { ...cat, int_order: idx };
+		})
+	}));
+}
+
+export async function reorderBags(orderedIds) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_bags: trip.arr_bags.map((bag) => {
+			const idx = orderedIds.indexOf(bag.int_id);
+			return idx === -1 ? bag : { ...bag, int_order: idx };
+		})
+	}));
+}
+
+export async function reorderTasks(stageId, orderedIds) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_tasks: trip.arr_tasks.map((task) => {
+			if (task.int_stage_id !== stageId) return task;
+			const idx = orderedIds.indexOf(task.int_id);
+			return idx === -1 ? task : { ...task, int_order: idx };
+		})
+	}));
+}
+
+export async function reorderStages(orderedIds) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_stages: trip.arr_stages.map((stage) => {
+			const idx = orderedIds.indexOf(stage.int_id);
+			return idx === -1 ? stage : { ...stage, int_order: idx };
+		})
+	}));
+}

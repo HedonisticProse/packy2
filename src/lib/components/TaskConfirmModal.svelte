@@ -60,7 +60,7 @@
 	.overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: var(--color-overlay);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -68,7 +68,7 @@
 	}
 
 	.box {
-		background: #fff;
+		background: var(--color-surface);
 		padding: 1.5rem;
 		border-radius: 6px;
 		min-width: 280px;
@@ -87,9 +87,9 @@
 		position: relative;
 		overflow: hidden;
 		padding: 0.75rem 1.5rem;
-		border: 2px solid #c00;
+		border: 2px solid var(--color-danger);
 		border-radius: 4px;
-		background: #fff;
+		background: var(--color-surface);
 		cursor: pointer;
 		font-size: 1rem;
 		user-select: none;
@@ -100,7 +100,7 @@
 		left: 0;
 		top: 0;
 		height: 100%;
-		background: #fcc;
+		background: var(--color-danger-light);
 		transition: width 50ms linear;
 		pointer-events: none;
 	}
@@ -112,7 +112,7 @@
 
 	.cancel {
 		background: none;
-		border: 1px solid #ccc;
+		border: 1px solid var(--color-border);
 		padding: 0.5rem;
 		border-radius: 4px;
 		cursor: pointer;

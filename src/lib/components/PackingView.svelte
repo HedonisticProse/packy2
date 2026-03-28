@@ -138,12 +138,12 @@
 	}
 
 	.empty {
-		color: #999;
+		color: var(--color-text-faint);
 		font-style: italic;
 	}
 
 	.critical-badge {
-		color: #c00;
+		color: var(--color-danger);
 		font-weight: bold;
 		font-size: 0.85em;
 		margin-left: 0.2em;
@@ -151,7 +151,7 @@
 
 	.bag-group {
 		margin-bottom: 2rem;
-		border: 1px solid #ddd;
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		padding: 1rem;
 	}
@@ -170,11 +170,11 @@
 		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: #666;
+		color: var(--color-text-muted);
 	}
 
 	.critical-section .section-label {
-		color: #c00;
+		color: var(--color-danger);
 	}
 
 	ul {
@@ -188,7 +188,7 @@
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.4rem 0;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--color-border-light);
 	}
 
 	li:last-child {
@@ -197,7 +197,7 @@
 
 	li.packed .item-name {
 		text-decoration: line-through;
-		color: #999;
+		color: var(--color-text-faint);
 	}
 
 	.item-name {
@@ -206,7 +206,7 @@
 
 	.qty {
 		font-size: 0.8em;
-		color: #888;
+		color: var(--color-text-faint);
 		font-style: italic;
 	}
 </style>

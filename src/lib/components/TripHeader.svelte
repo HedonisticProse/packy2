@@ -87,7 +87,7 @@
 	.trip-header .duration {
 		font-weight: 500;
 		margin: 1rem 0;
-		color: #666;
+		color: var(--color-text-muted);
 	}
 
 	.edit-form {
