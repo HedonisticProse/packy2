@@ -51,7 +51,7 @@
 					}}
 				/>
 				<button class="item-name" on:click={() => (editingItem = item)}>
-					{item.str_name}&nbsp;<span class="qty">×{item.int_quantity ?? 1}</span>
+					{#if item.bool_critical}<span class="critical-badge">!</span>{/if}{item.str_name}&nbsp;<span class="qty">×{item.int_quantity ?? 1}</span>
 				</button>
 				<button class="delete-btn" on:click={() => deleteItem(categoryId, item.int_id)}>
 					Delete
@@ -94,6 +94,13 @@
 	.items-list li.packed .item-name {
 		text-decoration: line-through;
 		color: #999;
+	}
+
+	.critical-badge {
+		color: #c00;
+		font-weight: bold;
+		font-size: 0.85em;
+		margin-right: 0.2em;
 	}
 
 	.item-name {

@@ -94,8 +94,7 @@
 						}}
 					/>
 					<button class="task-description" on:click={() => (editingTask = task)}>
-						{task.str_description}
-						{#if task.bool_critical}<span class="critical-badge">!</span>{/if}
+						{#if task.bool_critical}<span class="critical-badge">!</span>{/if}{task.str_description}
 					</button>
 				</li>
 			{/each}

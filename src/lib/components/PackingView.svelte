@@ -85,7 +85,7 @@
 											}
 										}}
 									/>
-									<span class="item-name">{item.str_name}</span>
+									<span class="item-name">{#if item.bool_critical}<span class="critical-badge">!</span>{/if}{item.str_name}</span>
 									<span class="qty">×{item.int_quantity ?? 1}</span>
 								</li>
 							{/each}
@@ -111,7 +111,7 @@
 											}
 										}}
 									/>
-									<span class="item-name">{item.str_name}</span>
+									<span class="item-name">{#if item.bool_critical}<span class="critical-badge">!</span>{/if}{item.str_name}</span>
 									<span class="qty">×{item.int_quantity ?? 1}</span>
 								</li>
 							{/each}
@@ -140,6 +140,13 @@
 	.empty {
 		color: #999;
 		font-style: italic;
+	}
+
+	.critical-badge {
+		color: #c00;
+		font-weight: bold;
+		font-size: 0.85em;
+		margin-right: 0.2em;
 	}
 
 	.bag-group {
