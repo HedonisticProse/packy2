@@ -51,7 +51,7 @@
 					}}
 				/>
 				<button class="item-name" on:click={() => (editingItem = item)}>
-					{#if item.bool_critical}<span class="critical-badge">!</span>{/if}{item.str_name}&nbsp;<span class="qty">×{item.int_quantity ?? 1}</span>
+					{item.str_name}{#if item.bool_critical}<span class="critical-badge">⭐</span>{/if}&nbsp;<span class="qty">×{item.int_quantity ?? 1}</span>
 				</button>
 				<button class="delete-btn" on:click={() => deleteItem(categoryId, item.int_id)}>
 					Delete
@@ -100,7 +100,7 @@
 		color: #c00;
 		font-weight: bold;
 		font-size: 0.85em;
-		margin-right: 0.2em;
+		margin-left: 0.2em;
 	}
 
 	.item-name {
