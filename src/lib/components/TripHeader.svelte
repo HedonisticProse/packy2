@@ -2,7 +2,6 @@
 	import { updateTrip } from '$lib/store.js';
 
 	export let trip;
-	export let onClear;
 
 	let isEditing = false;
 	let draftName = '';
@@ -14,7 +13,7 @@
 			? Math.ceil((new Date(draftReturn) - new Date(draftDeparture)) / (1000 * 60 * 60 * 24)) + 1
 			: 0;
 
-	function startEdit() {
+	export function startEdit() {
 		draftName = trip.str_name;
 		draftDeparture = trip.date_departure ?? '';
 		draftReturn = trip.date_return ?? '';
@@ -33,6 +32,20 @@
 
 	function cancelEdit() {
 		isEditing = false;
+	}
+
+	function ordinal(n) {
+		const s = ['th', 'st', 'nd', 'rd'];
+		const v = n % 100;
+		return n + (s[(v - 20) % 10] || s[v] || s[0]);
+	}
+
+	function formatDate(dateStr) {
+		if (!dateStr) return '';
+		const d = new Date(dateStr + 'T12:00:00');
+		const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+		const month = d.toLocaleDateString('en-US', { month: 'long' });
+		return `${weekday}, ${month} ${ordinal(d.getDate())}`;
 	}
 </script>
 
@@ -61,12 +74,8 @@
 		</div>
 	{:else}
 		<h1>{trip.str_name}</h1>
-		<p class="dates">{trip.date_departure} to {trip.date_return}</p>
+		<p class="dates">{formatDate(trip.date_departure)} to {formatDate(trip.date_return)}</p>
 		<p class="duration">{trip.int_duration} {trip.int_duration === 1 ? 'day' : 'days'}</p>
-		<div class="button-group">
-			<button on:click={startEdit}>Edit Trip</button>
-			<button on:click={onClear}>Clear Trip</button>
-		</div>
 	{/if}
 </div>
 

@@ -46,6 +46,7 @@
 	$: localStages = [...($tripStore?.arr_stages ?? [])]
 		.sort((a, b) => a.int_order - b.int_order)
 		.map((s) => ({ ...s, id: s.int_id }));
+	let tripHeaderEl;
 	let showForm = false;
 	let tripName = '';
 	let departureDate = '';
@@ -211,8 +212,10 @@
 		<!-- Trip Info Tab -->
 		{#if activeTab === 'tripinfo'}
 			<div class="tab-content">
-				<TripHeader trip={$tripStore} onClear={handleClearTrip} />
-				<div class="export-actions">
+				<TripHeader bind:this={tripHeaderEl} trip={$tripStore} />
+				<div class="trip-actions">
+					<button on:click={() => tripHeaderEl.startEdit()}>Edit Trip</button>
+					<button class="danger-btn" on:click={handleClearTrip}>Clear Trip</button>
 					<button on:click={handleSaveTrip}>Save Trip</button>
 					<button on:click={handleSaveTemplate}>Save Template</button>
 					<button on:click={() => fileInput.click()}>Import Trip</button>
@@ -449,12 +452,22 @@
 		text-align: left;
 	}
 
-	/* Export actions */
-	.export-actions {
+	/* Trip info action buttons */
+	.trip-actions {
 		display: flex;
 		gap: 0.5rem;
-		margin-top: 1rem;
+		margin-top: 1.25rem;
 		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.trip-actions .danger-btn {
+		border-color: var(--color-danger);
+		color: var(--color-danger);
+	}
+
+	.trip-actions .danger-btn:hover {
+		background: var(--color-danger-light);
 	}
 
 	/* Add row (shared by bags / items / stages tabs) */
