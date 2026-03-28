@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory, addBag, addStage } from '$lib/store.js';
 	import { saveTrip, saveTemplate } from '$lib/export.js';
+	import { importPackyFile } from '$lib/import.js';
 	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
 	import TripHeader from '$lib/components/TripHeader.svelte';
 	import CategorySection from '$lib/components/CategorySection.svelte';
@@ -19,6 +20,7 @@
 	let newCategoryName = '';
 	let newBagName = '';
 	let newStageName = '';
+	let fileInput;
 
 	$: calculatedDuration = departureDate && returnDate
 		? calculateDays(departureDate, returnDate)
@@ -58,6 +60,17 @@
 		await clearTripState();
 	}
 
+	async function handleImportTrip(e) {
+		const file = e.target.files[0];
+		if (!file) return;
+		try {
+			await importPackyFile(file);
+		} catch (err) {
+			console.error('Import failed:', err);
+		}
+		e.target.value = '';
+	}
+
 	function handleSaveTrip() {
 		saveTrip($tripStore);
 	}
@@ -88,6 +101,14 @@
 	<img src={base + '/logo.png'} alt="Packy2 Logo" />
 </div>
 
+<input
+	type="file"
+	accept=".packy,.trip,.template"
+	bind:this={fileInput}
+	on:change={handleImportTrip}
+	style="display:none"
+/>
+
 {#if isLoading}
 	<div class="loading-state">
 		<p>Loading your trip...</p>
@@ -96,6 +117,7 @@
 	<div class="empty-state">
 		<p>No trip yet</p>
 		<button on:click={() => (showForm = true)}>Start New Trip</button>
+		<button on:click={() => fileInput.click()}>Import Trip</button>
 	</div>
 {:else if !$tripStore && showForm}
 	<div class="trip-form">
@@ -129,6 +151,7 @@
 		<div class="export-actions">
 			<button on:click={handleSaveTrip}>Save Trip</button>
 			<button on:click={handleSaveTemplate}>Save Template</button>
+			<button on:click={() => fileInput.click()}>Import Trip</button>
 		</div>
 
 		<div class="bags-section">
