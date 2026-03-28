@@ -1,12 +1,13 @@
 <script>
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory, addBag } from '$lib/store.js';
+	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory, addBag, addStage } from '$lib/store.js';
 	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
 	import TripHeader from '$lib/components/TripHeader.svelte';
 	import CategorySection from '$lib/components/CategorySection.svelte';
 	import BagSection from '$lib/components/BagSection.svelte';
 	import PackingView from '$lib/components/PackingView.svelte';
+	import StageSection from '$lib/components/StageSection.svelte';
 
 	let isLoading = true;
 	let activeTab = 'list';
@@ -16,6 +17,7 @@
 	let returnDate = '';
 	let newCategoryName = '';
 	let newBagName = '';
+	let newStageName = '';
 
 	$: calculatedDuration = departureDate && returnDate
 		? calculateDays(departureDate, returnDate)
@@ -64,6 +66,12 @@
 		if (!newBagName.trim()) return;
 		await addBag(newBagName.trim());
 		newBagName = '';
+	}
+
+	async function handleAddStage() {
+		if (!newStageName.trim()) return;
+		await addStage(newStageName.trim());
+		newStageName = '';
 	}
 </script>
 
@@ -134,6 +142,7 @@
 		<div class="packing-section">
 			<div class="tabs">
 				<button class:active={activeTab === 'list'} on:click={() => (activeTab = 'list')}>List</button>
+				<button class:active={activeTab === 'tasks'} on:click={() => (activeTab = 'tasks')}>Tasks</button>
 				<button class:active={activeTab === 'pack'} on:click={() => (activeTab = 'pack')}>Pack</button>
 			</div>
 
@@ -155,6 +164,26 @@
 						{/each}
 					{:else}
 						<p class="empty-categories">No categories yet. Add a category to start organizing your items.</p>
+					{/if}
+				</div>
+			{:else if activeTab === 'tasks'}
+				<div class="stages-section">
+					<div class="add-stage">
+						<input
+							type="text"
+							bind:value={newStageName}
+							placeholder="Stage name (e.g., Departure)"
+							on:keydown={(e) => e.key === 'Enter' && handleAddStage()}
+						/>
+						<button on:click={handleAddStage}>Add Stage</button>
+					</div>
+
+					{#if $tripStore.arr_stages && $tripStore.arr_stages.length > 0}
+						{#each $tripStore.arr_stages as stage (stage.int_id)}
+							<StageSection {stage} tasks={$tripStore.arr_tasks} />
+						{/each}
+					{:else}
+						<p class="empty-stages">No stages yet.</p>
 					{/if}
 				</div>
 			{:else}
@@ -292,6 +321,27 @@
 
 	.categories-section {
 		text-align: left;
+	}
+
+	.stages-section {
+		text-align: left;
+	}
+
+	.add-stage {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.add-stage input {
+		flex: 1;
+		padding: 0.5rem;
+	}
+
+	.empty-stages {
+		color: #999;
+		font-style: italic;
+		margin-top: 1rem;
 	}
 
 	.add-category {
