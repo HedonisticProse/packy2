@@ -38,6 +38,7 @@ export async function createTrip(name, departureDate, returnDate, duration) {
 		arr_bags: [],
 		arr_categories: [],
 		arr_items: [],
+		arr_stages: [],
 		arr_tasks: []
 	});
 
