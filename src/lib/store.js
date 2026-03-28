@@ -23,6 +23,10 @@ export async function initializeTripStore() {
 	if (!browser) return null;
 
 	const trip = await getTrip();
+	if (trip) {
+		if (!trip.arr_stages) trip.arr_stages = [];
+		if (!trip.arr_tasks) trip.arr_tasks = [];
+	}
 	tripStore.set(trip);
 	isStoreReady.set(true);
 	return trip;
@@ -227,6 +231,80 @@ export async function deleteBag(bagId) {
 		),
 		arr_items: trip.arr_items.map((item) =>
 			item.int_bag_id === bagId ? { ...item, int_bag_id: null } : item
+		)
+	}));
+}
+
+// --- Stages ---
+
+export async function addStage(stageName) {
+	if (!stageName) return;
+	await updateAndSave((trip) => {
+		const newStage = {
+			int_id: Date.now(),
+			int_order: trip.arr_stages.length,
+			str_name: stageName
+		};
+		return { ...trip, arr_stages: [...trip.arr_stages, newStage] };
+	});
+}
+
+export async function renameStage(stageId, newName) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_stages: trip.arr_stages.map((s) =>
+			s.int_id === stageId ? { ...s, str_name: newName } : s
+		)
+	}));
+}
+
+export async function deleteStage(stageId) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_stages: trip.arr_stages.filter((s) => s.int_id !== stageId),
+		arr_tasks: trip.arr_tasks.filter((t) => t.int_stage_id !== stageId)
+	}));
+}
+
+// --- Tasks ---
+
+export async function addTask(stageId, description) {
+	if (!description) return;
+	await updateAndSave((trip) => {
+		const newTask = {
+			int_id: Date.now(),
+			int_order: trip.arr_tasks.length,
+			str_description: description,
+			int_stage_id: stageId,
+			bool_critical: false,
+			bool_verified: false,
+			bool_done: false
+		};
+		return { ...trip, arr_tasks: [...trip.arr_tasks, newTask] };
+	});
+}
+
+export async function updateTask(taskId, updatedFields) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_tasks: trip.arr_tasks.map((t) =>
+			t.int_id === taskId ? { ...t, ...updatedFields } : t
+		)
+	}));
+}
+
+export async function deleteTask(taskId) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_tasks: trip.arr_tasks.filter((t) => t.int_id !== taskId)
+	}));
+}
+
+export async function toggleTask(taskId) {
+	await updateAndSave((trip) => ({
+		...trip,
+		arr_tasks: trip.arr_tasks.map((t) =>
+			t.int_id === taskId ? { ...t, bool_done: !t.bool_done } : t
 		)
 	}));
 }
