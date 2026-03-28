@@ -2,6 +2,7 @@
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { tripStore, initializeTripStore, createTrip, clearTripState, addCategory, addBag, addStage } from '$lib/store.js';
+	import { saveTrip, saveTemplate } from '$lib/export.js';
 	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
 	import TripHeader from '$lib/components/TripHeader.svelte';
 	import CategorySection from '$lib/components/CategorySection.svelte';
@@ -55,6 +56,14 @@
 
 	async function handleClearTrip() {
 		await clearTripState();
+	}
+
+	function handleSaveTrip() {
+		saveTrip($tripStore);
+	}
+
+	function handleSaveTemplate() {
+		saveTemplate($tripStore);
 	}
 
 	async function handleAddCategory() {
@@ -116,6 +125,11 @@
 {:else if $tripStore}
 	<div class="trip-display">
 		<TripHeader trip={$tripStore} onClear={handleClearTrip} />
+
+		<div class="export-actions">
+			<button on:click={handleSaveTrip}>Save Trip</button>
+			<button on:click={handleSaveTemplate}>Save Template</button>
+		</div>
 
 		<div class="bags-section">
 			<h2>Bags</h2>
@@ -274,6 +288,12 @@
 
 	.duration {
 		color: #666;
+	}
+
+	.export-actions {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 1rem;
 	}
 
 	.bags-section {
