@@ -1,7 +1,7 @@
 <script>
 	// @ts-nocheck
 	import { flip } from 'svelte/animate';
-	import { dndzone } from 'svelte-dnd-action';
+	import { dndzone, TRIGGERS } from 'svelte-dnd-action';
 	import { toggleItem, updateItem, deleteItem, reorderItems } from '$lib/store.js';
 	import ItemEditModal from './ItemEditModal.svelte';
 	import CriticalConfirmModal from './CriticalConfirmModal.svelte';
@@ -11,6 +11,7 @@
 	export let categoryBagId;
 	export let bags;
 
+	let dragDisabled = true;
 	let editingItem = null;
 	let confirmingItem = null;
 
@@ -21,11 +22,13 @@
 
 	function handleDndConsider(e) {
 		localItems = e.detail.items;
+		if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) dragDisabled = true;
 	}
 
 	function handleDndFinalize(e) {
 		localItems = e.detail.items;
 		reorderItems(categoryId, localItems.map((i) => i.int_id));
+		dragDisabled = true;
 	}
 
 	$: effectiveBagName = (() => {
@@ -45,13 +48,17 @@
 {#if items && items.length > 0}
 	<ul
 		class="items-list"
-		use:dndzone={{ items: localItems, flipDurationMs: 200 }}
+		use:dndzone={{ items: localItems, flipDurationMs: 200, dragDisabled }}
 		on:consider={handleDndConsider}
 		on:finalize={handleDndFinalize}
 	>
 		{#each localItems as item (item.id)}
 			<li class:packed={item.bool_packed} animate:flip={{ duration: 200 }}>
-				<span class="drag-handle">⠿</span>
+				<span
+					class="drag-handle"
+					on:mousedown={() => (dragDisabled = false)}
+					on:touchstart|preventDefault={() => (dragDisabled = false)}
+				>⠿</span>
 				<input
 					type="checkbox"
 					checked={item.bool_packed}
@@ -130,6 +137,8 @@
 		cursor: grab;
 		font-size: 1rem;
 		flex-shrink: 0;
+		touch-action: none;
+		user-select: none;
 	}
 
 	.drag-handle:active {

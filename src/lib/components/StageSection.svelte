@@ -1,7 +1,7 @@
 <script>
 	// @ts-nocheck
 	import { flip } from 'svelte/animate';
-	import { dndzone } from 'svelte-dnd-action';
+	import { dndzone, TRIGGERS } from 'svelte-dnd-action';
 	import { addTask, toggleTask, updateTask, reorderTasks } from '$lib/store.js';
 	import StageEditModal from './StageEditModal.svelte';
 	import TaskEditModal from './TaskEditModal.svelte';
@@ -15,6 +15,7 @@
 		.sort((a, b) => a.int_order - b.int_order)
 		.map((t) => ({ ...t, id: t.int_id }));
 
+	let dragDisabled = true;
 	let newTaskDescription = '';
 	let editOpen = false;
 	let editingTask = null;
@@ -22,11 +23,13 @@
 
 	function handleDndConsider(e) {
 		localTasks = e.detail.items;
+		if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) dragDisabled = true;
 	}
 
 	function handleDndFinalize(e) {
 		localTasks = e.detail.items;
 		reorderTasks(stage.int_id, localTasks.map((t) => t.int_id));
+		dragDisabled = true;
 	}
 
 	async function handleAddTask() {
@@ -59,13 +62,17 @@
 	{#if localTasks.length > 0}
 		<ul
 			class="task-list"
-			use:dndzone={{ items: localTasks, flipDurationMs: 200 }}
+			use:dndzone={{ items: localTasks, flipDurationMs: 200, dragDisabled }}
 			on:consider={handleDndConsider}
 			on:finalize={handleDndFinalize}
 		>
 			{#each localTasks as task (task.id)}
 				<li class:done={task.bool_done} animate:flip={{ duration: 200 }}>
-					<span class="drag-handle">⠿</span>
+					<span
+					class="drag-handle"
+					on:mousedown={() => (dragDisabled = false)}
+					on:touchstart|preventDefault={() => (dragDisabled = false)}
+				>⠿</span>
 					<input
 						type="checkbox"
 						checked={task.bool_done}
@@ -170,6 +177,8 @@
 		cursor: grab;
 		font-size: 1rem;
 		flex-shrink: 0;
+		touch-action: none;
+		user-select: none;
 	}
 
 	.drag-handle:active {

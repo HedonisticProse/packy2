@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
-	import { dndzone } from 'svelte-dnd-action';
+	import { dndzone, TRIGGERS } from 'svelte-dnd-action';
 	import {
 		tripStore,
 		initializeTripStore,
@@ -50,6 +50,9 @@
 	$: localStages = [...($tripStore?.arr_stages ?? [])]
 		.sort((a, b) => a.int_order - b.int_order)
 		.map((s) => ({ ...s, id: s.int_id }));
+	let bagsDragDisabled = true;
+	let categoriesDragDisabled = true;
+	let stagesDragDisabled = true;
 	let allTrips = [];
 	let tripHeaderEl;
 	let showForm = false;
@@ -168,22 +171,34 @@
 		newStageName = '';
 	}
 
-	function handleBagsDndConsider(e) { localBags = e.detail.items; }
+	function handleBagsDndConsider(e) {
+		localBags = e.detail.items;
+		if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) bagsDragDisabled = true;
+	}
 	function handleBagsDndFinalize(e) {
 		localBags = e.detail.items;
 		reorderBags(localBags.map((b) => b.int_id));
+		bagsDragDisabled = true;
 	}
 
-	function handleCategoriesDndConsider(e) { localCategories = e.detail.items; }
+	function handleCategoriesDndConsider(e) {
+		localCategories = e.detail.items;
+		if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) categoriesDragDisabled = true;
+	}
 	function handleCategoriesDndFinalize(e) {
 		localCategories = e.detail.items;
 		reorderCategories(localCategories.map((c) => c.int_id));
+		categoriesDragDisabled = true;
 	}
 
-	function handleStagesDndConsider(e) { localStages = e.detail.items; }
+	function handleStagesDndConsider(e) {
+		localStages = e.detail.items;
+		if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) stagesDragDisabled = true;
+	}
 	function handleStagesDndFinalize(e) {
 		localStages = e.detail.items;
 		reorderStages(localStages.map((s) => s.int_id));
+		stagesDragDisabled = true;
 	}
 </script>
 
@@ -299,13 +314,18 @@
 				{#if localBags.length > 0}
 					<div
 						class="dnd-list"
-						use:dndzone={{ items: localBags, flipDurationMs: 200 }}
+						use:dndzone={{ items: localBags, flipDurationMs: 200, dragDisabled: bagsDragDisabled }}
 						on:consider={handleBagsDndConsider}
 						on:finalize={handleBagsDndFinalize}
 					>
 						{#each localBags as bag (bag.id)}
-							<div animate:flip={{ duration: 200 }}>
-								<BagSection {bag} />
+							<div animate:flip={{ duration: 200 }} class="section-dnd-row">
+								<span
+									class="section-drag-handle"
+									on:mousedown={() => (bagsDragDisabled = false)}
+									on:touchstart|preventDefault={() => (bagsDragDisabled = false)}
+								>â ¿</span>
+								<div class="section-dnd-content"><BagSection {bag} /></div>
 							</div>
 						{/each}
 					</div>
@@ -330,17 +350,24 @@
 				{#if localCategories.length > 0}
 					<div
 						class="dnd-list"
-						use:dndzone={{ items: localCategories, flipDurationMs: 200 }}
+						use:dndzone={{ items: localCategories, flipDurationMs: 200, dragDisabled: categoriesDragDisabled }}
 						on:consider={handleCategoriesDndConsider}
 						on:finalize={handleCategoriesDndFinalize}
 					>
 						{#each localCategories as category (category.id)}
-							<div animate:flip={{ duration: 200 }}>
-								<CategorySection
-									{category}
-									items={$tripStore.arr_items}
-									bags={$tripStore.arr_bags}
-								/>
+							<div animate:flip={{ duration: 200 }} class="section-dnd-row">
+								<span
+									class="section-drag-handle"
+									on:mousedown={() => (categoriesDragDisabled = false)}
+									on:touchstart|preventDefault={() => (categoriesDragDisabled = false)}
+								>â ¿</span>
+								<div class="section-dnd-content">
+									<CategorySection
+										{category}
+										items={$tripStore.arr_items}
+										bags={$tripStore.arr_bags}
+									/>
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -407,13 +434,18 @@
 				{#if localStages.length > 0}
 					<div
 						class="dnd-list"
-						use:dndzone={{ items: localStages, flipDurationMs: 200 }}
+						use:dndzone={{ items: localStages, flipDurationMs: 200, dragDisabled: stagesDragDisabled }}
 						on:consider={handleStagesDndConsider}
 						on:finalize={handleStagesDndFinalize}
 					>
 						{#each localStages as stage (stage.id)}
-							<div animate:flip={{ duration: 200 }}>
-								<StageSection {stage} tasks={$tripStore.arr_tasks} />
+							<div animate:flip={{ duration: 200 }} class="section-dnd-row">
+								<span
+									class="section-drag-handle"
+									on:mousedown={() => (stagesDragDisabled = false)}
+									on:touchstart|preventDefault={() => (stagesDragDisabled = false)}
+								>â ¿</span>
+								<div class="section-dnd-content"><StageSection {stage} tasks={$tripStore.arr_tasks} /></div>
 							</div>
 						{/each}
 					</div>
@@ -663,5 +695,31 @@
 		font-size: 0.875rem;
 		flex-shrink: 0;
 		max-width: 45%;
+	}
+
+	/* Section-level drag handles (bags, categories, stages) */
+	.section-dnd-row {
+		display: flex;
+		align-items: flex-start;
+	}
+
+	.section-drag-handle {
+		padding-top: 0.6rem;
+		padding-right: 0.25rem;
+		color: var(--color-text-faint);
+		cursor: grab;
+		font-size: 1rem;
+		flex-shrink: 0;
+		touch-action: none;
+		user-select: none;
+	}
+
+	.section-drag-handle:active {
+		cursor: grabbing;
+	}
+
+	.section-dnd-content {
+		flex: 1;
+		min-width: 0;
 	}
 </style>
