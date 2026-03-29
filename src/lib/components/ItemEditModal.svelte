@@ -101,7 +101,7 @@
 		background: var(--color-surface);
 		padding: 1.5rem;
 		border-radius: 6px;
-		min-width: 300px;
+		width: min(340px, calc(100vw - 2rem));
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
@@ -127,6 +127,7 @@
 	.modal-actions {
 		display: flex;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.delete-btn {

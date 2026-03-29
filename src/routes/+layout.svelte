@@ -93,4 +93,14 @@
 		color: var(--color-text-muted);
 		border-top: 1px solid var(--color-border);
 	}
+
+	@media (max-width: 480px) {
+		.app-main {
+			padding: 0.5rem;
+		}
+
+		.app-body {
+			padding: 0.75rem;
+		}
+	}
 </style>

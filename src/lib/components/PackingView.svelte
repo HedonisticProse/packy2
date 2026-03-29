@@ -202,11 +202,20 @@
 
 	.item-name {
 		flex: 1;
+		overflow-wrap: break-word;
+		word-break: break-word;
+		min-width: 0;
 	}
 
 	.qty {
 		font-size: 0.8em;
 		color: var(--color-text-faint);
 		font-style: italic;
+	}
+
+	@media (max-width: 480px) {
+		.bag-group {
+			padding: 0.5rem;
+		}
 	}
 </style>

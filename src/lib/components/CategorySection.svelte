@@ -93,4 +93,10 @@
 	button:hover {
 		background: var(--color-btn-hover);
 	}
+
+	@media (max-width: 480px) {
+		.category {
+			padding: 0.5rem;
+		}
+	}
 </style>

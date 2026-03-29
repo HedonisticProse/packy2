@@ -86,6 +86,8 @@
 
 	.trip-header h1 {
 		margin-bottom: 1rem;
+		overflow-wrap: break-word;
+		word-break: break-word;
 	}
 
 	.trip-header .dates {
@@ -117,6 +119,7 @@
 	.edit-form input {
 		width: 100%;
 		padding: 0.5rem;
+		box-sizing: border-box;
 	}
 
 	.button-group {

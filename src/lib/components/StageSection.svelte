@@ -216,4 +216,10 @@
 		color: var(--color-text-faint);
 		font-style: italic;
 	}
+
+	@media (max-width: 480px) {
+		.stage {
+			padding: 0.5rem;
+		}
+	}
 </style>

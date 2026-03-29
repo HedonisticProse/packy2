@@ -487,6 +487,8 @@
 	.trip-list-dates {
 		font-size: 0.8rem;
 		color: var(--color-text-muted);
+		overflow-wrap: break-word;
+		word-break: break-word;
 	}
 
 	.trip-list-actions {
@@ -505,7 +507,6 @@
 	.trip-form {
 		max-width: 400px;
 		margin: 1rem auto;
-		padding: 1rem;
 	}
 
 	.trip-form form {
@@ -649,6 +650,10 @@
 	.assignment-cat {
 		flex: 1;
 		font-weight: 500;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.assignment-row select {
@@ -656,5 +661,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		font-size: 0.875rem;
+		flex-shrink: 0;
+		max-width: 45%;
 	}
 </style>
