@@ -8,10 +8,11 @@
  *
  * Examples (duration = 7):
  *   "3"      → 3
- *   "2d+2"   → 16
+ *   "2d"     → 14  (2 * 7)
+ *   "2d+2"   → 16  (2 * 7 + 2)
  *   "d/3+2"  → 5   (Math.ceil(7/3 + 2))
  *   "d/9"    → 1   (Math.ceil(7/9))
- *   "6d+6"   → 48
+ *   "6d+6"   → 48  (6 * 7 + 6)
  */
 export function parseQuantity(str_quantity, duration) {
 	const s = (str_quantity ?? '').trim();
@@ -20,6 +21,8 @@ export function parseQuantity(str_quantity, duration) {
 	// Duration-based if it contains d, D, n, or N
 	if (/[dDnN]/.test(s)) {
 		const expr = s
+			.replace(/(\d)([dDnN])/g, '$1*$2')
+			.replace(/([dDnN])(\d)/g, '$1*$2')
 			.replace(/[dD]/g, String(duration ?? 0))
 			.replace(/[nN]/g, String(duration ?? 0));
 		try {
