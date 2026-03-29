@@ -321,10 +321,10 @@
 						{#each localBags as bag (bag.id)}
 							<div animate:flip={{ duration: 200 }} class="section-dnd-row">
 								<span
-									class="section-drag-handle"
+									role="button" tabindex="-1" aria-label="Drag to reorder" class="section-drag-handle"
 									on:mousedown={() => (bagsDragDisabled = false)}
 									on:touchstart|preventDefault={() => (bagsDragDisabled = false)}
-								>â ¿</span>
+								>⠿</span>
 								<div class="section-dnd-content"><BagSection {bag} /></div>
 							</div>
 						{/each}
@@ -357,10 +357,10 @@
 						{#each localCategories as category (category.id)}
 							<div animate:flip={{ duration: 200 }} class="section-dnd-row">
 								<span
-									class="section-drag-handle"
+									role="button" tabindex="-1" aria-label="Drag to reorder" class="section-drag-handle"
 									on:mousedown={() => (categoriesDragDisabled = false)}
 									on:touchstart|preventDefault={() => (categoriesDragDisabled = false)}
-								>â ¿</span>
+								>⠿</span>
 								<div class="section-dnd-content">
 									<CategorySection
 										{category}
@@ -441,10 +441,10 @@
 						{#each localStages as stage (stage.id)}
 							<div animate:flip={{ duration: 200 }} class="section-dnd-row">
 								<span
-									class="section-drag-handle"
+									role="button" tabindex="-1" aria-label="Drag to reorder" class="section-drag-handle"
 									on:mousedown={() => (stagesDragDisabled = false)}
 									on:touchstart|preventDefault={() => (stagesDragDisabled = false)}
-								>â ¿</span>
+								>⠿</span>
 								<div class="section-dnd-content"><StageSection {stage} tasks={$tripStore.arr_tasks} /></div>
 							</div>
 						{/each}

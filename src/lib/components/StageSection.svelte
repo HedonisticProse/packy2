@@ -69,6 +69,9 @@
 			{#each localTasks as task (task.id)}
 				<li class:done={task.bool_done} animate:flip={{ duration: 200 }}>
 					<span
+					role="button"
+					tabindex="-1"
+					aria-label="Drag to reorder"
 					class="drag-handle"
 					on:mousedown={() => (dragDisabled = false)}
 					on:touchstart|preventDefault={() => (dragDisabled = false)}
