@@ -4,13 +4,16 @@
  * Works with normalized data model (flat arrays with ID references)
  */
 
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import {
 	createTrip as createTripDB,
 	saveTrip as saveTripDB,
 	getTrip,
-	clearTrip
+	clearTrip,
+	setActiveTrip,
+	deactivateTrip,
+	deleteTripById as storagDeleteTripById
 } from './storage.js';
 import { parseQuantity } from './quantity.js';
 
@@ -362,4 +365,26 @@ export async function reorderStages(orderedIds) {
 			return idx === -1 ? stage : { ...stage, int_order: idx };
 		})
 	}));
+}
+
+export async function loadTripById(tripId) {
+	const trip = await setActiveTrip(tripId);
+	if (trip) {
+		if (!trip.arr_stages) trip.arr_stages = [];
+		if (!trip.arr_tasks) trip.arr_tasks = [];
+	}
+	tripStore.set(trip);
+}
+
+export async function deactivateCurrentTrip() {
+	await deactivateTrip();
+	tripStore.set(null);
+}
+
+export async function deleteTripById(tripId) {
+	const current = get(tripStore);
+	await storagDeleteTripById(tripId);
+	if (current?.int_id === tripId) {
+		tripStore.set(null);
+	}
 }

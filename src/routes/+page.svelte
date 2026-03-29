@@ -13,8 +13,12 @@
 		assignCategoryToBag,
 		reorderCategories,
 		reorderBags,
-		reorderStages
+		reorderStages,
+		loadTripById,
+		deactivateCurrentTrip,
+		deleteTripById
 	} from '$lib/store.js';
+	import { getAllTrips } from '$lib/storage.js';
 	import { saveTrip, saveTemplate } from '$lib/export.js';
 	import { importPackyFile } from '$lib/import.js';
 	import { migrateFromLocalStorage } from '$lib/storage/migration.js';
@@ -46,6 +50,7 @@
 	$: localStages = [...($tripStore?.arr_stages ?? [])]
 		.sort((a, b) => a.int_order - b.int_order)
 		.map((s) => ({ ...s, id: s.int_id }));
+	let allTrips = [];
 	let tripHeaderEl;
 	let showForm = false;
 	let tripName = '';
@@ -59,12 +64,32 @@
 	$: calculatedDuration =
 		departureDate && returnDate ? calculateDays(departureDate, returnDate) : 0;
 
+	function ordinal(n) {
+		const s = ['th', 'st', 'nd', 'rd'];
+		const v = n % 100;
+		return n + (s[(v - 20) % 10] || s[v] || s[0]);
+	}
+
+	function formatDate(dateStr) {
+		if (!dateStr) return '';
+		const d = new Date(dateStr + 'T12:00:00');
+		const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+		const month = d.toLocaleDateString('en-US', { month: 'long' });
+		return `${weekday}, ${month} ${ordinal(d.getDate())}`;
+	}
+
+	async function refreshTripList() {
+		const trips = await getAllTrips();
+		allTrips = trips.sort((a, b) => b.createdAt - a.createdAt);
+	}
+
 	onMount(async () => {
 		const saved = localStorage.getItem(TAB_STORAGE_KEY);
 		if (saved && TABS.includes(saved)) activeTab = saved;
 
 		await migrateFromLocalStorage();
 		await initializeTripStore();
+		await refreshTripList();
 		isLoading = false;
 	});
 
@@ -93,6 +118,17 @@
 
 	async function handleClearTrip() {
 		await clearTripState();
+		await refreshTripList();
+	}
+
+	async function handleLoadTrip(tripId) {
+		await loadTripById(tripId);
+	}
+
+	async function handleDeleteTripFromList(tripId) {
+		if (!confirm('Delete this trip? This cannot be undone.')) return;
+		await deleteTripById(tripId);
+		await refreshTripList();
 	}
 
 	async function handleImportTrip(e) {
@@ -164,10 +200,34 @@
 		<p>Loading your trip...</p>
 	</div>
 {:else if !$tripStore && !showForm}
-	<div class="empty-state">
-		<p>No trip loaded.</p>
-		<button on:click={() => (showForm = true)}>Start New Trip</button>
-		<button on:click={() => fileInput.click()}>Import Trip</button>
+	<div class="trip-manager">
+		<h2 class="trip-manager-title">Your Trips</h2>
+
+		{#if allTrips.length > 0}
+			<ul class="trip-list">
+				{#each allTrips as trip (trip.int_id)}
+					<li class="trip-list-item">
+						<div class="trip-list-info">
+							<span class="trip-list-name">{trip.str_name}</span>
+							<span class="trip-list-dates">
+								{formatDate(trip.date_departure)} → {formatDate(trip.date_return)}
+							</span>
+						</div>
+						<div class="trip-list-actions">
+							<button on:click={() => handleLoadTrip(trip.int_id)}>Load</button>
+							<button class="danger-btn" on:click={() => handleDeleteTripFromList(trip.int_id)}>Delete</button>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			<p class="empty-msg">No trips saved yet.</p>
+		{/if}
+
+		<div class="trip-manager-footer">
+			<button on:click={() => (showForm = true)}>+ New Trip</button>
+			<button on:click={() => fileInput.click()}>Import Trip</button>
+		</div>
 	</div>
 {:else if !$tripStore && showForm}
 	<div class="trip-form">
@@ -214,8 +274,9 @@
 			<div class="tab-content">
 				<TripHeader bind:this={tripHeaderEl} trip={$tripStore} />
 				<div class="trip-actions">
+					<button on:click={deactivateCurrentTrip}>All Trips</button>
 					<button on:click={() => tripHeaderEl.startEdit()}>Edit Trip</button>
-					<button class="danger-btn" on:click={handleClearTrip}>Clear Trip</button>
+					<button class="danger-btn" on:click={handleClearTrip}>Delete Trip</button>
 					<button on:click={handleSaveTrip}>Save Trip</button>
 					<button on:click={handleSaveTemplate}>Save Template</button>
 					<button on:click={() => fileInput.click()}>Import Trip</button>
@@ -374,12 +435,71 @@
 		font-style: italic;
 	}
 
-	.empty-state {
+	/* Trip manager (empty state / trip list) */
+	.trip-manager {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
 		gap: 1rem;
-		padding: 2rem 0;
+		padding: 0.5rem 0;
+	}
+
+	.trip-manager-title {
+		margin: 0;
+		font-size: 1.1rem;
+		color: var(--color-text);
+	}
+
+	.trip-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.trip-list-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.65rem 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		background: var(--color-surface);
+	}
+
+	.trip-list-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+
+	.trip-list-name {
+		font-weight: 600;
+		color: var(--color-text);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.trip-list-dates {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+	}
+
+	.trip-list-actions {
+		display: flex;
+		gap: 0.4rem;
+		flex-shrink: 0;
+	}
+
+	.trip-manager-footer {
+		display: flex;
+		gap: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid var(--color-border-light);
 	}
 
 	.trip-form {
@@ -461,12 +581,12 @@
 		justify-content: center;
 	}
 
-	.trip-actions .danger-btn {
+	.danger-btn {
 		border-color: var(--color-danger);
 		color: var(--color-danger);
 	}
 
-	.trip-actions .danger-btn:hover {
+	.danger-btn:hover {
 		background: var(--color-danger-light);
 	}
 

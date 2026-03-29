@@ -162,3 +162,52 @@ export async function getAllTrips() {
 		request.onerror = () => reject(request.error);
 	});
 }
+
+// Set a trip as the active trip by ID; returns the trip object
+export async function setActiveTrip(tripId) {
+	if (!browser) return null;
+
+	const db = await getDB();
+
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(['metadata', 'trips'], 'readwrite');
+		tx.objectStore('metadata').put({ key: 'currentTripId', value: tripId });
+		const req = tx.objectStore('trips').get(tripId);
+		tx.oncomplete = () => resolve(req.result || null);
+		tx.onerror = () => reject(tx.error);
+	});
+}
+
+// Clear currentTripId without deleting the trip data (deactivate without destroying)
+export async function deactivateTrip() {
+	if (!browser) return;
+
+	const db = await getDB();
+
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(['metadata'], 'readwrite');
+		tx.objectStore('metadata').delete('currentTripId');
+		tx.oncomplete = () => resolve();
+		tx.onerror = () => reject(tx.error);
+	});
+}
+
+// Delete any trip by ID; also clears currentTripId if it matches
+export async function deleteTripById(tripId) {
+	if (!browser) return;
+
+	const db = await getDB();
+
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(['trips', 'metadata'], 'readwrite');
+		tx.objectStore('trips').delete(tripId);
+		const req = tx.objectStore('metadata').get('currentTripId');
+		req.onsuccess = () => {
+			if (req.result?.value === tripId) {
+				tx.objectStore('metadata').delete('currentTripId');
+			}
+		};
+		tx.oncomplete = () => resolve();
+		tx.onerror = () => reject(tx.error);
+	});
+}
